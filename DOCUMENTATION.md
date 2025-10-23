@@ -102,25 +102,33 @@ smart_rag_student/
 
 ## Usage
 
+### ✅ **System Status: FULLY WORKING!**
+
+The RAG system has been tested and verified to work correctly with both CLI and Web UI modes.
+
 ### 1. Command Line Interface
 
 #### Interactive Mode
 ```bash
+cd "D:\Uni\sw project\RAG"
+venv\Scripts\activate
 python main.py --interactive
 ```
 
 #### Ask a Single Question
 ```bash
+cd "D:\Uni\sw project\RAG"
+venv\Scripts\activate
 python main.py --question "What are the key elements of a valid contract?"
 ```
 
 #### Ingest Documents
 ```bash
 # Ingest from directory
-python main.py --ingest-dir /path/to/your/documents
+python main.py --ingest-dir "D:\path\to\your\documents"
 
 # Ingest single file
-python main.py --ingest-file /path/to/document.pdf
+python main.py --ingest-file "D:\path\to\document.pdf"
 ```
 
 ### 2. Web Interface
@@ -166,6 +174,33 @@ Then open your browser to `http://localhost:8501`
 - **Source Citations**: Shows document sources for answers
 - **Responsive Design**: Works on desktop and mobile devices
 - **RTL Support**: Proper right-to-left text rendering for Persian/Arabic
+
+### 🌍 **Multilingual Support**
+
+The system includes comprehensive multilingual support:
+
+#### **Language Detection**
+- Automatically detects Persian (فارسی), Arabic (العربية), and English text
+- Handles mixed-language documents
+- Normalizes Persian digits and punctuation
+
+#### **Persian Language Features**
+- **RTL Text Support**: Proper right-to-left rendering
+- **Persian Text Normalization**: Converts Persian digits to English digits
+- **Language-Specific Prompts**: Tailored responses for each language
+- **Persian Legal Terminology**: Optimized for Persian legal documents
+
+#### **Example Multilingual Usage**
+```bash
+# English questions
+python main.py --question "What is contract law?"
+
+# Persian questions
+python main.py --question "قانون قرارداد چیست؟"
+
+# Arabic questions  
+python main.py --question "ما هو قانون العقود؟"
+```
 
 ### 3. API Usage
 
@@ -271,15 +306,27 @@ texts = load_from_multiple_apis(api_configs)
 
 2. **Models not found**:
    ```bash
-   ollama pull llama3
-   ollama pull nomic-embed-text
+   ollama pull llama3:8b
+   ollama pull all-minilm:latest
    ```
 
-3. **ChromaDB errors**:
+3. **Unicode/Emoji encoding errors on Windows**:
+   - The system has been fixed to handle Windows encoding issues
+   - All emoji characters have been removed for compatibility
+
+4. **"No relevant documents found"**:
+   - This is normal if no documents have been ingested yet
+   - Add documents using: `python main.py --ingest-file your_document.pdf`
+
+5. **ChromaDB errors**:
    - Delete `data/chroma_db/` directory
    - Restart the application
 
-4. **Memory issues with large documents**:
+6. **Web UI "Failed to fetch" errors**:
+   - Make sure the API server is running: `python minimal_api.py`
+   - Check that CORS is properly configured
+
+7. **Memory issues with large documents**:
    - Reduce `CHUNK_SIZE` in config
    - Process documents in smaller batches
 
