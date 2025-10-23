@@ -125,17 +125,47 @@ python main.py --ingest-file /path/to/document.pdf
 
 ### 2. Web Interface
 
-#### Start the API Server
+The system provides two web interface options:
+
+#### Option 1: Modern HTML/CSS/JS Interface (Recommended)
+**Start the API Server:**
 ```bash
-python -m app.api
+cd "D:\Uni\sw project\RAG"
+venv\Scripts\activate
+python minimal_api.py
 ```
 
-#### Start the Web Interface
+**Start the Web Interface:**
 ```bash
+cd "D:\Uni\sw project\RAG\web_ui"
+python server.py
+```
+
+Then open your browser to `http://localhost:8080`
+
+#### Option 2: Streamlit Interface
+**Start the API Server:**
+```bash
+cd "D:\Uni\sw project\RAG"
+venv\Scripts\activate
+python minimal_api.py
+```
+
+**Start the Streamlit Interface:**
+```bash
+cd "D:\Uni\sw project\RAG"
+venv\Scripts\activate
 streamlit run app/interface.py
 ```
 
 Then open your browser to `http://localhost:8501`
+
+#### Web Interface Features
+- **Multilingual Support**: Automatically detects and handles Persian, Arabic, and English text
+- **Real-time Chat**: Interactive Q&A interface with typing indicators
+- **Source Citations**: Shows document sources for answers
+- **Responsive Design**: Works on desktop and mobile devices
+- **RTL Support**: Proper right-to-left text rendering for Persian/Arabic
 
 ### 3. API Usage
 

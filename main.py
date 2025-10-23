@@ -15,26 +15,31 @@ from rag.utils.logging_utils import setup_logging, RAGLogger
 
 def setup_environment():
     """Setup the environment and check dependencies."""
-    print("🔧 Setting up Smart RAG for Law Students...")
+    print("Setting up Smart RAG for Law Students...")
     
     # Check if Ollama is running
     try:
         import ollama
         client = ollama.Client()
         models = client.list()
-        print("✅ Ollama is running")
+        print("Ollama is running")
         
         # Check for required models
-        available_models = [model['name'] for model in models['models']]
+        available_models = []
+        for model in models.get('models', []):
+            if isinstance(model, dict) and 'name' in model:
+                available_models.append(model['name'])
+            elif isinstance(model, str):
+                available_models.append(model)
         
         if 'llama3' not in available_models:
-            print("⚠️ Warning: llama3 model not found. Please pull it with: ollama pull llama3")
+            print("Warning: llama3 model not found. Please pull it with: ollama pull llama3")
         
         if 'nomic-embed-text' not in available_models:
-            print("⚠️ Warning: nomic-embed-text model not found. Please pull it with: ollama pull nomic-embed-text")
+            print("Warning: nomic-embed-text model not found. Please pull it with: ollama pull nomic-embed-text")
             
     except Exception as e:
-        print(f"❌ Error connecting to Ollama: {e}")
+        print(f"Error connecting to Ollama: {e}")
         print("Please make sure Ollama is installed and running.")
         return False
     
@@ -46,22 +51,22 @@ def ingest_data(args):
     ingestion = DataIngestion()
     
     if args.directory:
-        print(f"🔄 Ingesting from directory: {args.directory}")
+        print(f"Ingesting from directory: {args.directory}")
         result = ingestion.ingest_from_directory(args.directory)
-        print(f"✅ Ingested {result['total_chunks']} chunks from {result['successful_files']} files")
+        print(f"Ingested {result['total_chunks']} chunks from {result['successful_files']} files")
         
     elif args.file:
-        print(f"🔄 Ingesting single file: {args.file}")
+        print(f"Ingesting single file: {args.file}")
         result = ingestion.ingest_single_file(args.file)
         if result['status'] == 'success':
-            print(f"✅ Ingested {result['total_chunks']} chunks from {args.file}")
+            print(f"Ingested {result['total_chunks']} chunks from {args.file}")
         else:
-            print(f"❌ Error: {result['error']}")
+            print(f"Error: {result['error']}")
     
     elif args.api:
-        print("🔄 Ingesting from API...")
+        print("Ingesting from API...")
         # This would need API configuration
-        print("⚠️ API ingestion requires configuration. Please use the web interface.")
+        print("API ingestion requires configuration. Please use the web interface.")
 
 def ask_question(question: str, top_k: int = 3):
     """Ask a question to the RAG system."""
@@ -72,18 +77,18 @@ def ask_question(question: str, top_k: int = 3):
         retriever = DocumentRetriever()
         generator = LLMGenerator()
         
-        print(f"🤔 Question: {question}")
-        print("🔄 Retrieving relevant documents...")
+        print(f"Question: {question}")
+        print("Retrieving relevant documents...")
         
         # Retrieve relevant documents
         documents = retriever.retrieve_relevant_documents(question, top_k)
         
         if not documents:
-            print("❌ No relevant documents found. Please add more documents to the knowledge base.")
+            print("No relevant documents found. Please add more documents to the knowledge base.")
             return
         
-        print(f"📚 Found {len(documents)} relevant documents")
-        print("🔄 Generating answer...")
+        print(f"Found {len(documents)} relevant documents")
+        print("Generating answer...")
         
         # Generate response
         answer = generator.generate_response(question, documents)
@@ -101,7 +106,7 @@ def ask_question(question: str, top_k: int = 3):
         
     except Exception as e:
         logger.log_error("question_answering", str(e))
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
 
 def interactive_mode():
     """Run in interactive question-answering mode."""
@@ -139,7 +144,7 @@ def interactive_mode():
             print("\n👋 Goodbye!")
             break
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"Error: {e}")
 
 def main():
     """Main entry point."""

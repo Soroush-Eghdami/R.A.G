@@ -1,8 +1,8 @@
 # rag/utils/language_utils.py
 
 import re
-from typing import str, bool, List
-from .config import SUPPORTED_LANGUAGES, PERSIAN_SUPPORT
+from typing import List
+from ..config import SUPPORTED_LANGUAGES, PERSIAN_SUPPORT
 
 class LanguageDetector:
     """

@@ -92,12 +92,14 @@ python main.py --ingest-file /path/to/case_study.pdf
 #### Option 1: Modern HTML/CSS/JS Interface (Recommended)
 1. **Start the API server**:
    ```bash
-   python -m app.api
+   cd "D:\Uni\sw project\RAG"
+   venv\Scripts\activate
+   python minimal_api.py
    ```
 
 2. **Start the web UI** (in another terminal):
    ```bash
-   cd web_ui
+   cd "D:\Uni\sw project\RAG\web_ui"
    python server.py
    ```
 
@@ -106,11 +108,15 @@ python main.py --ingest-file /path/to/case_study.pdf
 #### Option 2: Streamlit Interface
 1. **Start the API server**:
    ```bash
-   python -m app.api
+   cd "D:\Uni\sw project\RAG"
+   venv\Scripts\activate
+   python minimal_api.py
    ```
 
 2. **Start the Streamlit interface** (in another terminal):
    ```bash
+   cd "D:\Uni\sw project\RAG"
+   venv\Scripts\activate
    streamlit run app/interface.py
    ```
 
@@ -118,8 +124,13 @@ python main.py --ingest-file /path/to/case_study.pdf
 
 ### 📚 Example Questions
 
+**English:**
 - "What are the elements of negligence in tort law?"
 - "Explain the difference between civil and criminal law"
+
+**Persian (فارسی):**
+- "عناصر غفلت در قانون مسئولیت مدنی چیست؟"
+- "تفاوت بین حقوق مدنی و کیفری را توضیح دهید"
 - "What is the statute of limitations for contract disputes?"
 - "How does the burden of proof work in criminal cases?"
 
