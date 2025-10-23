@@ -1,0 +1,9 @@
+chromadb
+ollama
+PyMuPDF  # for PDF processing
+python-docx
+requests
+tqdm
+fastapi
+uvicorn
+streamlit
