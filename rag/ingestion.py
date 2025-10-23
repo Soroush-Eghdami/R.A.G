@@ -46,7 +46,7 @@ class DataIngestion:
             'file_types_processed': []
         }
         
-        print(f"🔄 Starting ingestion from: {directory_path}")
+        print(f"Starting ingestion from: {directory_path}")
         
         # Process different file types
         for file_type in file_types:
@@ -64,22 +64,22 @@ class DataIngestion:
                 all_texts.extend(texts)
                 results['file_types_processed'].append(file_type)
                 results['successful_files'] += len(texts)
-                print(f"✅ Processed {len(texts)} {file_type} files")
+                print(f"Processed {len(texts)} {file_type} files")
                 
             except Exception as e:
-                print(f"❌ Error processing {file_type} files: {e}")
+                print(f"Error processing {file_type} files: {e}")
                 results['failed_files'] += 1
         
         # Chunk and store the texts
         if all_texts:
-            print("🔄 Chunking documents...")
+            print("Chunking documents...")
             chunks = chunk_multiple_texts(all_texts)
             results['total_chunks'] = len(chunks)
             
-            print(f"🔄 Storing {len(chunks)} chunks in vector database...")
+            print(f"Storing {len(chunks)} chunks in vector database...")
             self.vectorstore.add_documents(chunks)
             
-            print(f"✅ Ingestion completed successfully!")
+            print(f"Ingestion completed successfully!")
             print(f"   - Total chunks: {results['total_chunks']}")
             print(f"   - File types: {', '.join(results['file_types_processed'])}")
         
@@ -95,7 +95,7 @@ class DataIngestion:
         Returns:
             Dictionary with ingestion results
         """
-        print(f"🔄 Ingesting single file: {file_path}")
+        print(f"Ingesting single file: {file_path}")
         
         try:
             file_extension = os.path.splitext(file_path)[1].lower()

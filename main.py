@@ -50,16 +50,16 @@ def ingest_data(args):
     logger = RAGLogger("main")
     ingestion = DataIngestion()
     
-    if args.directory:
-        print(f"Ingesting from directory: {args.directory}")
-        result = ingestion.ingest_from_directory(args.directory)
+    if args.ingest_dir:
+        print(f"Ingesting from directory: {args.ingest_dir}")
+        result = ingestion.ingest_from_directory(args.ingest_dir)
         print(f"Ingested {result['total_chunks']} chunks from {result['successful_files']} files")
         
-    elif args.file:
-        print(f"Ingesting single file: {args.file}")
-        result = ingestion.ingest_single_file(args.file)
+    elif args.ingest_file:
+        print(f"Ingesting single file: {args.ingest_file}")
+        result = ingestion.ingest_single_file(args.ingest_file)
         if result['status'] == 'success':
-            print(f"Ingested {result['total_chunks']} chunks from {args.file}")
+            print(f"Ingested {result['total_chunks']} chunks from {args.ingest_file}")
         else:
             print(f"Error: {result['error']}")
     
@@ -94,11 +94,11 @@ def ask_question(question: str, top_k: int = 3):
         answer = generator.generate_response(question, documents)
         
         print("\n" + "="*50)
-        print("🎯 ANSWER:")
+        print("ANSWER:")
         print("="*50)
         print(answer)
         print("\n" + "="*50)
-        print("📖 SOURCES:")
+        print("SOURCES:")
         print("="*50)
         for i, doc in enumerate(documents, 1):
             print(f"\nSource {i}:")

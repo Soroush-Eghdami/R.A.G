@@ -76,6 +76,7 @@ models/
 test_*.py
 *_test.py
 tests/
+test_contract_law.txt
 
 # Documentation build
 docs/_build/
