@@ -32,12 +32,12 @@ Smart RAG for Law Students is a Retrieval-Augmented Generation (RAG) system spec
 ### File Structure
 
 ```
-smart_rag_student/
+R.A.G/
 ├── data/
 │   ├── raw/                # Unprocessed documents
 │   ├── processed/          # Cleaned text chunks
-│   └── chroma_db/         # Vector database
-├── rag/
+│   └── chroma_db/         # Vector database (auto-created)
+├── rag/                    # Core RAG components
 │   ├── config.py          # Configuration settings
 │   ├── embedding.py       # Ollama embedding model
 │   ├── chunking.py        # Text splitting logic
@@ -50,13 +50,29 @@ smart_rag_student/
 │   │   ├── pdf_loader.py
 │   │   ├── docx_loader.py
 │   │   └── api_loader.py
-│   └── utils/             # Helper functions
+│   └── utils/             # Helper utilities
+│       ├── language_utils.py    # Multilingual support
 │       └── logging_utils.py
-├── app/
+├── app/                    # Web interface
 │   ├── api.py             # FastAPI backend
 │   └── interface.py       # Streamlit UI
+├── web_ui/                 # Modern HTML/CSS/JS interface
+│   ├── index.html         # Main web interface
+│   ├── styles.css         # Styling with RTL support
+│   ├── script.js          # JavaScript functionality
+│   ├── server.py          # Local web server
+│   ├── start_web_ui.bat   # Windows startup script
+│   ├── start_web_ui.sh    # Linux/Mac startup script
+│   └── README.md           # Web UI documentation
+├── logs/                   # System logs
+│   └── rag_main.log       # Main application logs
 ├── main.py                # CLI interface
-├── requirements.txt       # Dependencies
+├── minimal_api.py         # Simplified API server
+├── start_api.py           # API startup script
+├── requirements.txt       # Python dependencies
+├── test_contract_law.txt  # Sample legal document
+├── DOCUMENTATION.md       # Technical documentation
+├── .gitignore            # Git ignore rules
 └── README.md             # Usage instructions
 ```
 
