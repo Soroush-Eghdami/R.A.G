@@ -18,3 +18,8 @@ CHUNK_OVERLAP = 50
 
 # Retrieval settings
 TOP_K = 3
+
+# Language support
+SUPPORTED_LANGUAGES = ["en", "fa", "ar"]  # English, Persian, Arabic
+DEFAULT_LANGUAGE = "en"
+PERSIAN_SUPPORT = True

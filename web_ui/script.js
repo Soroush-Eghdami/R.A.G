@@ -453,6 +453,58 @@ class SmartRAG {
     }
 }
 
+// Language detection utility
+function detectLanguage(text) {
+    if (!text || !text.trim()) return 'en';
+    
+    const persianPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+    const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+    const englishPattern = /[a-zA-Z]/;
+    
+    const persianMatches = (text.match(persianPattern) || []).length;
+    const arabicMatches = (text.match(arabicPattern) || []).length;
+    const englishMatches = (text.match(englishPattern) || []).length;
+    
+    const totalMatches = persianMatches + arabicMatches + englishMatches;
+    
+    if (totalMatches === 0) return 'en';
+    
+    const persianRatio = persianMatches / totalMatches;
+    const arabicRatio = arabicMatches / totalMatches;
+    const englishRatio = englishMatches / totalMatches;
+    
+    if (persianRatio > 0.3) {
+        return 'fa'; // Persian/Farsi
+    } else if (arabicRatio > 0.3) {
+        return 'ar'; // Arabic
+    } else if (englishRatio > 0.3) {
+        return 'en'; // English
+    } else {
+        return 'mixed'; // Mixed languages
+    }
+}
+
+// Persian text normalization
+function normalizePersianText(text) {
+    if (!text) return text;
+    
+    // Normalize Persian digits to English digits
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+    const englishDigits = '0123456789';
+    
+    let normalized = text;
+    for (let i = 0; i < persianDigits.length; i++) {
+        normalized = normalized.replace(new RegExp(persianDigits[i], 'g'), englishDigits[i]);
+    }
+    
+    // Normalize Persian punctuation
+    normalized = normalized.replace(/،/g, ',');  // Persian comma
+    normalized = normalized.replace(/؛/g, ';');  // Persian semicolon
+    normalized = normalized.replace(/؟/g, '?');  // Persian question mark
+    
+    return normalized.trim();
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     new SmartRAG();

@@ -5,6 +5,10 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import uvicorn
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from rag.retriever import DocumentRetriever
 from rag.generator import LLMGenerator
 from rag.ingestion import DataIngestion

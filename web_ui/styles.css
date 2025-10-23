@@ -883,3 +883,40 @@ body {
         font-size: 1.4rem;
     }
 }
+
+/* Persian/Farsi text support */
+.persian-subtitle {
+    font-family: 'Tahoma', 'Arial', sans-serif;
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 0.5em;
+    direction: rtl;
+    text-align: right;
+}
+
+/* RTL (Right-to-Left) text support */
+.rtl-text {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Tahoma', 'Arial', sans-serif;
+}
+
+/* Persian input styling */
+.persian-input {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Tahoma', 'Arial', sans-serif;
+}
+
+/* Language detection styling */
+.message.persian {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Tahoma', 'Arial', sans-serif;
+}
+
+.message.arabic {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Tahoma', 'Arial', sans-serif;
+}

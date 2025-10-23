@@ -2,6 +2,7 @@
 
 import ollama
 from .config import OLLAMA_MODEL
+from .utils.language_utils import language_detector
 from typing import List
 
 class LLMGenerator:
@@ -26,11 +27,19 @@ class LLMGenerator:
         Returns:
             Generated response from the LLM
         """
+        # Detect query language for multilingual support
+        query_language = language_detector.detect_language(query)
+        
         # Prepare context from retrieved documents
         context = "\n\n".join(context_documents)
         
-        # Create a law-student focused prompt
-        prompt = f"""You are a helpful AI assistant specialized in legal studies for law students. 
+        # Get language-specific prompt prefix
+        language_prefix = language_detector.get_language_prompt_prefix(query_language)
+        
+        # Create a law-student focused prompt with language awareness
+        prompt = f"""{language_prefix}
+        
+        You are a helpful AI assistant specialized in legal studies for law students. 
         Use the following context to answer the student's question accurately and comprehensively.
         
         Context:
