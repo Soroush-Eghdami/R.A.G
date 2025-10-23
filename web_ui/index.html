@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart RAG for Law Students</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-balance-scale"></i>
+                    <h1>Smart RAG for Law Students</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="uploadBtn" class="btn btn-secondary">
+                        <i class="fas fa-upload"></i> Upload Documents
+                    </button>
+                    <button id="statsBtn" class="btn btn-outline">
+                        <i class="fas fa-chart-bar"></i> Stats
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-content">
+                    <div class="nav-section">
+                        <h3>Navigation</h3>
+                        <nav class="nav-menu">
+                            <a href="#" class="nav-item active" data-section="chat">
+                                <i class="fas fa-comments"></i>
+                                <span>Ask Questions</span>
+                            </a>
+                            <a href="#" class="nav-item" data-section="upload">
+                                <i class="fas fa-file-upload"></i>
+                                <span>Upload Documents</span>
+                            </a>
+                            <a href="#" class="nav-item" data-section="search">
+                                <i class="fas fa-search"></i>
+                                <span>Search Topics</span>
+                            </a>
+                            <a href="#" class="nav-item" data-section="settings">
+                                <i class="fas fa-cog"></i>
+                                <span>Settings</span>
+                            </a>
+                        </nav>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <h3>Quick Actions</h3>
+                        <div class="action-buttons">
+                            <button class="action-btn" data-topic="contract-law">
+                                <i class="fas fa-file-contract"></i>
+                                Contract Law
+                            </button>
+                            <button class="action-btn" data-topic="tort-law">
+                                <i class="fas fa-gavel"></i>
+                                Tort Law
+                            </button>
+                            <button class="action-btn" data-topic="criminal-law">
+                                <i class="fas fa-handcuffs"></i>
+                                Criminal Law
+                            </button>
+                            <button class="action-btn" data-topic="constitutional-law">
+                                <i class="fas fa-landmark"></i>
+                                Constitutional Law
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Chat Section -->
+                <section id="chat-section" class="content-section active">
+                    <div class="chat-container">
+                        <div class="chat-header">
+                            <h2>Ask Your Legal Questions</h2>
+                            <div class="chat-controls">
+                                <button id="clearChat" class="btn btn-outline btn-sm">
+                                    <i class="fas fa-trash"></i> Clear
+                                </button>
+                                <div class="model-status">
+                                    <span class="status-indicator" id="modelStatus"></span>
+                                    <span id="modelText">Model Status</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="welcome-message">
+                                <div class="welcome-content">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <h3>Welcome to Smart RAG for Law Students!</h3>
+                                    <p>Ask any legal question and get comprehensive answers from your knowledge base.</p>
+                                    <div class="example-questions">
+                                        <h4>Try asking:</h4>
+                                        <ul>
+                                            <li>"What are the elements of negligence in tort law?"</li>
+                                            <li>"Explain the difference between civil and criminal law"</li>
+                                            <li>"What is the statute of limitations for contract disputes?"</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-container">
+                            <div class="chat-input-wrapper">
+                                <textarea 
+                                    id="questionInput" 
+                                    placeholder="Ask your legal question here..."
+                                    rows="3"
+                                ></textarea>
+                                <button id="sendBtn" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="input-options">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="includeSources" checked>
+                                    <span>Include sources</span>
+                                </label>
+                                <select id="topK" class="select-input">
+                                    <option value="3">Top 3 results</option>
+                                    <option value="5">Top 5 results</option>
+                                    <option value="10">Top 10 results</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Upload Section -->
+                <section id="upload-section" class="content-section">
+                    <div class="upload-container">
+                        <h2>Upload Legal Documents</h2>
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-content">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h3>Drag & Drop Files Here</h3>
+                                <p>or <button class="link-btn" id="browseFiles">browse files</button></p>
+                                <div class="supported-formats">
+                                    <span>Supported: TXT, PDF, DOCX</span>
+                                </div>
+                            </div>
+                            <input type="file" id="fileInput" multiple accept=".txt,.pdf,.docx" style="display: none;">
+                        </div>
+                        
+                        <div class="upload-progress" id="uploadProgress" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <span class="progress-text" id="progressText">Uploading...</span>
+                        </div>
+                        
+                        <div class="uploaded-files" id="uploadedFiles"></div>
+                    </div>
+                </section>
+
+                <!-- Search Section -->
+                <section id="search-section" class="content-section">
+                    <div class="search-container">
+                        <h2>Search Legal Topics</h2>
+                        <div class="search-input-wrapper">
+                            <input type="text" id="topicSearch" placeholder="Search for legal topics, cases, or concepts...">
+                            <button id="searchBtn" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="search-results" id="searchResults"></div>
+                    </div>
+                </section>
+
+                <!-- Settings Section -->
+                <section id="settings-section" class="content-section">
+                    <div class="settings-container">
+                        <h2>Settings</h2>
+                        <div class="settings-grid">
+                            <div class="setting-group">
+                                <label for="apiUrl">API URL</label>
+                                <input type="text" id="apiUrl" value="http://localhost:8000" placeholder="API endpoint URL">
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label for="chunkSize">Chunk Size</label>
+                                <input type="number" id="chunkSize" value="500" min="100" max="2000">
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label for="chunkOverlap">Chunk Overlap</label>
+                                <input type="number" id="chunkOverlap" value="50" min="0" max="500">
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label for="temperature">Response Temperature</label>
+                                <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
+                                <span class="range-value" id="temperatureValue">0.7</span>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-actions">
+                            <button id="saveSettings" class="btn btn-primary">Save Settings</button>
+                            <button id="testConnection" class="btn btn-outline">Test Connection</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p id="loadingText">Processing your request...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
