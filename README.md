@@ -89,12 +89,27 @@ python main.py --ingest-file /path/to/case_study.pdf
 
 ### 🌐 Web Interface
 
+#### Option 1: Modern HTML/CSS/JS Interface (Recommended)
 1. **Start the API server**:
    ```bash
    python -m app.api
    ```
 
-2. **Start the web interface** (in another terminal):
+2. **Start the web UI** (in another terminal):
+   ```bash
+   cd web_ui
+   python server.py
+   ```
+
+3. **Open your browser** to `http://localhost:8080`
+
+#### Option 2: Streamlit Interface
+1. **Start the API server**:
+   ```bash
+   python -m app.api
+   ```
+
+2. **Start the Streamlit interface** (in another terminal):
    ```bash
    streamlit run app/interface.py
    ```
