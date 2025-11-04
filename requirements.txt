@@ -7,3 +7,5 @@ tqdm
 fastapi
 uvicorn
 streamlit
+sentence-transformers  # For multilingual embedding support (paraphrase-multilingual-MiniLM-L12-v2)
+torch  # Required for sentence-transformers

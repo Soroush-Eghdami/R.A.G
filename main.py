@@ -32,11 +32,26 @@ def setup_environment():
             elif isinstance(model, str):
                 available_models.append(model)
         
-        if 'llama3' not in available_models:
-            print("Warning: llama3 model not found. Please pull it with: ollama pull llama3")
+        # Check for recommended LLM models
+        recommended_models = ['llama3.1:8b', 'llama3:8b', 'llama3.2:3b']
+        found_llm = False
+        for model in recommended_models:
+            if any(model in m for m in available_models):
+                print(f"Found LLM model: {model}")
+                found_llm = True
+                break
         
-        if 'nomic-embed-text' not in available_models:
-            print("Warning: nomic-embed-text model not found. Please pull it with: ollama pull nomic-embed-text")
+        if not found_llm:
+            print("Warning: Recommended LLM model not found.")
+            print("Please pull one of these models:")
+            print("  ollama pull llama3.1:8b  # Recommended: Better quality")
+            print("  ollama pull llama3:8b    # Current model")
+            print("  ollama pull llama3.2:3b  # Faster, lighter")
+        
+        # Check for embedding models (Ollama fallback)
+        if 'all-minilm:latest' not in available_models:
+            print("Note: Ollama embedding model not found, but using sentence-transformers instead.")
+            print("If you want to use Ollama embeddings, pull with: ollama pull all-minilm:latest")
             
     except Exception as e:
         print(f"Error connecting to Ollama: {e}")
