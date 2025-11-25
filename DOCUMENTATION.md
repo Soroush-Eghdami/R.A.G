@@ -34,9 +34,8 @@ Smart RAG for Law Students is a Retrieval-Augmented Generation (RAG) system spec
 ```
 R.A.G/
 ├── data/
-│   ├── raw/                # Unprocessed documents
-│   ├── processed/          # Cleaned text chunks
-│   └── chroma_db/         # Vector database (auto-created)
+│   ├── raw/                # Your source documents (.txt, .pdf, .docx)
+│   └── chroma_db/         # Vector database (auto-created, stores embeddings)
 ├── rag/                    # Core RAG components
 │   ├── config.py          # Configuration settings
 │   ├── embedding.py       # Ollama embedding model
@@ -106,7 +105,7 @@ R.A.G/
 
 5. **Create necessary directories**:
    ```bash
-   mkdir -p data/raw data/processed logs
+   mkdir -p data/raw logs
    ```
 
 ## Usage
@@ -210,10 +209,14 @@ The system uses ChromaDB for vector storage. The database is automatically creat
 
 ### Data Ingestion Process
 
-1. **Load** - Read documents from various sources
-2. **Chunk** - Split text into overlapping chunks
-3. **Embed** - Generate vector embeddings using Ollama
-4. **Store** - Save embeddings in ChromaDB
+The ingestion pipeline processes documents directly from `data/raw/`:
+
+1. **Load** - Read documents from `data/raw/` (TXT, PDF, DOCX files)
+2. **Chunk** - Split text into overlapping chunks with structure preservation
+3. **Embed** - Generate vector embeddings using sentence-transformers or Ollama
+4. **Store** - Save embeddings directly in ChromaDB (`data/chroma_db/`)
+
+**Note:** There is no intermediate `processed/` folder. Documents are processed in-memory and stored directly in the vector database. The original files remain in `data/raw/`.
 
 ## Advanced Features
 

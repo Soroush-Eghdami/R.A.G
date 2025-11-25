@@ -43,7 +43,7 @@ A specialized Retrieval-Augmented Generation (RAG) system designed for law stude
 
 5. **Create necessary directories**:
    ```bash
-   mkdir -p data/raw data/processed logs
+   mkdir -p data/raw logs
    ```
 
 ## ✅ **System Status: FULLY WORKING!**
@@ -138,8 +138,7 @@ python main.py --ingest-dir "data/raw"
 R.A.G/
 ├── data/
 │   ├── raw/                # Your legal documents (.txt, .pdf, .docx)
-│   ├── processed/          # Processed text chunks
-│   └── chroma_db/          # Vector database (auto-created)
+│   └── chroma_db/          # Vector database (auto-created, stores embeddings)
 ├── rag/                    # Core RAG components
 │   ├── config.py          # Configuration settings
 │   ├── embedding.py       # Ollama embeddings
