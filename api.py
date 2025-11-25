@@ -94,15 +94,17 @@ async def query_rag(request: QueryRequest):
     Query the RAG system with a question.
     """
     try:
-        logger.log_query_processed(request.question, 0)
-        
         # Retrieve relevant documents
         documents = retriever.retrieve_relevant_documents(
             request.question, 
             top_k=request.top_k
         )
         
-        if not documents:
+        # Log after retrieval with actual document count
+        logger.log_query_processed(request.question, len(documents))
+        
+        if not documents or len(documents) == 0:
+            logger.log_error("query_processing", f"No documents retrieved for query: {request.question}")
             return QueryResponse(
                 answer="I couldn't find any relevant information to answer your question. Please try rephrasing or adding more documents to the knowledge base.",
                 sources=[] if not request.include_sources else [],
@@ -122,6 +124,8 @@ async def query_rag(request: QueryRequest):
         
     except Exception as e:
         logger.log_error("query_processing", str(e))
+        import traceback
+        logger.log_error("query_processing", traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
 
 # Ingestion endpoint
