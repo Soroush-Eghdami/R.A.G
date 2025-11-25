@@ -81,3 +81,6 @@ test_contract_law.txt
 # Documentation build
 docs/_build/
 site/
+
+# Commands reference (local only)
+COMMANDS.md

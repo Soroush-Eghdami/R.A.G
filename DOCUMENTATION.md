@@ -53,25 +53,18 @@ R.A.G/
 │   └── utils/             # Helper utilities
 │       ├── language_utils.py    # Multilingual support
 │       └── logging_utils.py
-├── app/                    # Web interface
-│   ├── api.py             # FastAPI backend
-│   └── interface.py       # Streamlit UI
 ├── web_ui/                 # Modern HTML/CSS/JS interface
-│   ├── index.html         # Main web interface
-│   ├── styles.css         # Styling with RTL support
-│   ├── script.js          # JavaScript functionality
-│   ├── server.py          # Local web server
-│   ├── start_web_ui.bat   # Windows startup script
-│   ├── start_web_ui.sh    # Linux/Mac startup script
-│   └── README.md           # Web UI documentation
+│   ├── index.html         # Main web interface (Tailwind CSS)
+│   ├── script.js          # JavaScript functionality (Alpine.js)
+│   └── server.py          # Local web server
 ├── logs/                   # System logs
 │   └── rag_main.log       # Main application logs
 ├── main.py                # CLI interface
-├── minimal_api.py         # Simplified API server
+├── api.py                 # FastAPI server
 ├── start_api.py           # API startup script
 ├── requirements.txt       # Python dependencies
-├── test_contract_law.txt  # Sample legal document
 ├── DOCUMENTATION.md       # Technical documentation
+├── COMMANDS.md            # Command reference (gitignored)
 ├── .gitignore            # Git ignore rules
 └── README.md             # Usage instructions
 ```
@@ -122,101 +115,42 @@ R.A.G/
 
 The RAG system has been tested and verified to work correctly with both CLI and Web UI modes.
 
+> **📋 For complete command reference, see [COMMANDS.md](COMMANDS.md)**
+
 ### 1. Command Line Interface
 
-#### Interactive Mode
-```bash
-cd "D:\Uni\sw project\RAG"
-venv\Scripts\activate
-python main.py --interactive
-```
+**Quick Examples:**
+- Interactive mode: `python main.py --interactive`
+- Single question: `python main.py --question "Your question"`
+- Ingest file: `python main.py --ingest-file "path/to/file.docx"`
+- Ingest directory: `python main.py --ingest-dir "data/raw"`
 
-#### Ask a Single Question
-```bash
-cd "D:\Uni\sw project\RAG"
-venv\Scripts\activate
-python main.py --question "What are the key elements of a valid contract?"
-```
-
-#### Ingest Documents
-```bash
-# Ingest from directory
-python main.py --ingest-dir "D:\path\to\your\documents"
-
-# Ingest single file
-python main.py --ingest-file "D:\path\to\document.pdf"
-```
+See [COMMANDS.md](COMMANDS.md) for detailed command reference.
 
 ### 2. Web Interface
 
-The system provides two web interface options:
+**Modern HTML/CSS/JS Interface (Recommended):**
 
-#### Option 1: Modern HTML/CSS/JS Interface (Recommended)
-**Start the API Server:**
-```bash
-cd "D:\Uni\sw project\RAG"
-venv\Scripts\activate
-python minimal_api.py
-```
+1. **Start the API server**:
+   ```bash
+   python api.py
+   ```
 
-**Start the Web Interface:**
-```bash
-cd "D:\Uni\sw project\RAG\web_ui"
-python server.py
-```
+2. **Start the web UI** (in another terminal):
+   ```bash
+   cd web_ui
+   python server.py
+   ```
 
-Then open your browser to `http://localhost:8080`
+3. **Open your browser** to `http://localhost:8080`
 
-#### Option 2: Streamlit Interface
-**Start the API Server:**
-```bash
-cd "D:\Uni\sw project\RAG"
-venv\Scripts\activate
-python minimal_api.py
-```
-
-**Start the Streamlit Interface:**
-```bash
-cd "D:\Uni\sw project\RAG"
-venv\Scripts\activate
-streamlit run app/interface.py
-```
-
-Then open your browser to `http://localhost:8501`
-
-#### Web Interface Features
-- **Multilingual Support**: Automatically detects and handles Persian, Arabic, and English text
-- **Real-time Chat**: Interactive Q&A interface with typing indicators
-- **Source Citations**: Shows document sources for answers
-- **Responsive Design**: Works on desktop and mobile devices
-- **RTL Support**: Proper right-to-left text rendering for Persian/Arabic
-
-### 🌍 **Multilingual Support**
-
-The system includes comprehensive multilingual support:
-
-#### **Language Detection**
-- Automatically detects Persian (فارسی), Arabic (العربية), and English text
-- Handles mixed-language documents
-- Normalizes Persian digits and punctuation
-
-#### **Persian Language Features**
-- **RTL Text Support**: Proper right-to-left rendering
-- **Persian Text Normalization**: Converts Persian digits to English digits
-- **Language-Specific Prompts**: Tailored responses for each language
-- **Persian Legal Terminology**: Optimized for Persian legal documents
-
-#### **Example Multilingual Usage**
-```bash
-# English questions
-python main.py --question "What is contract law?"
-
-# Persian questions
-python main.py --question "قانون قرارداد چیست؟"
-
-# Arabic questions  
-python main.py --question "ما هو قانون العقود؟"
-```
+**Features:**
+- Dark/light mode toggle with system preference detection
+- Real-time chat interface
+- Document upload support
+- System settings and configuration
+- Connection status indicator
+- Modern, responsive design with Tailwind CSS
 
 ### 3. API Usage
 
@@ -226,20 +160,23 @@ The system provides a REST API with the following endpoints:
 - `GET /health` - Health check
 - `POST /query` - Ask questions
 - `POST /ingest` - Ingest data
-- `GET /search/{topic}` - Search by topic
 - `GET /stats` - System statistics
+- `GET /docs` - Interactive API documentation (Swagger UI)
 
-#### Example API Usage
+**Example API Usage:**
 ```python
 import requests
 
 # Ask a question
 response = requests.post("http://localhost:8000/query", json={
     "question": "What is contract law?",
-    "top_k": 3
+    "top_k": 3,
+    "include_sources": True
 })
 print(response.json()["answer"])
 ```
+
+For detailed API usage examples, see [COMMANDS.md](COMMANDS.md).
 
 ## Configuration
 
@@ -339,8 +276,9 @@ texts = load_from_multiple_apis(api_configs)
    - Restart the application
 
 6. **Web UI "Failed to fetch" errors**:
-   - Make sure the API server is running: `python minimal_api.py`
+   - Make sure the API server is running: `python api.py`
    - Check that CORS is properly configured
+   - Verify API URL in web UI settings matches the running server
 
 7. **Memory issues with large documents**:
    - Reduce `CHUNK_SIZE` in config

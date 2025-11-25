@@ -52,89 +52,57 @@ Your RAG system is now fully functional with both CLI and Web UI modes! The syst
 
 ## 📖 Usage
 
-### 🎯 Getting Started
+### 🎯 Quick Start
 
-1. **Add your legal documents** to `data/raw/`:
-   ```bash
-   # Copy your legal documents
-   cp your_legal_documents/* data/raw/
-   ```
-
-2. **Ingest the documents**:
-   ```bash
-   python main.py --ingest-dir data/raw
-   ```
-
-3. **Start asking questions**:
-   ```bash
-   python main.py --interactive
-   ```
+1. **Add your legal documents** to `data/raw/` directory
+2. **Ingest the documents** (see [COMMANDS.md](COMMANDS.md) for details)
+3. **Start asking questions** via CLI or Web UI
 
 ### 💻 Command Line Interface
 
-#### Interactive Mode (Recommended)
+For detailed command reference, see **[COMMANDS.md](COMMANDS.md)**.
+
+**Quick Examples:**
 ```bash
+# Interactive mode (recommended)
 python main.py --interactive
-```
 
-#### Ask a Single Question
-```bash
+# Ask a single question
 python main.py --question "What are the key elements of a valid contract?"
-```
 
-#### Ingest Documents
-```bash
-# Ingest from directory
-python main.py --ingest-dir /path/to/your/legal/documents
-
-# Ingest single file
-python main.py --ingest-file /path/to/case_study.pdf
+# Ingest documents
+python main.py --ingest-file "data/raw/document.docx"
+python main.py --ingest-dir "data/raw"
 ```
 
 ### 🌐 Web Interface
 
-#### Option 1: Modern HTML/CSS/JS Interface (Recommended)
+**Modern HTML/CSS/JS Interface (Recommended):**
+
 1. **Start the API server**:
    ```bash
-   cd "D:\Uni\sw project\RAG"
-   venv\Scripts\activate
-   python minimal_api.py
+   python api.py
    ```
 
 2. **Start the web UI** (in another terminal):
    ```bash
-   cd "D:\Uni\sw project\RAG\web_ui"
+   cd web_ui
    python server.py
    ```
 
 3. **Open your browser** to `http://localhost:8080`
 
-#### Option 2: Streamlit Interface
-1. **Start the API server**:
-   ```bash
-   cd "D:\Uni\sw project\RAG"
-   venv\Scripts\activate
-   python minimal_api.py
-   ```
-
-2. **Start the Streamlit interface** (in another terminal):
-   ```bash
-   cd "D:\Uni\sw project\RAG"
-   venv\Scripts\activate
-   streamlit run app/interface.py
-   ```
-
-3. **Open your browser** to `http://localhost:8501`
+**Features:**
+- Dark/light mode toggle
+- Real-time chat interface
+- Document upload support
+- System settings
+- Connection status indicator
 
 ### 📚 Example Questions
 
-**English:**
 - "What are the elements of negligence in tort law?"
 - "Explain the difference between civil and criminal law"
-
-**Persian (فارسی):**
-- "عناصر غفلت در قانون مسئولیت مدنی چیست؟"
-- "تفاوت بین حقوق مدنی و کیفری را توضیح دهید"
 - "What is the statute of limitations for contract disputes?"
 - "How does the burden of proof work in criminal cases?"
 
@@ -192,17 +160,13 @@ R.A.G/
 │   ├── api.py             # FastAPI backend
 │   └── interface.py       # Streamlit UI
 ├── web_ui/                 # Modern HTML/CSS/JS interface
-│   ├── index.html         # Main web interface
-│   ├── styles.css         # Styling with RTL support
-│   ├── script.js          # JavaScript functionality
-│   ├── server.py          # Local web server
-│   ├── start_web_ui.bat   # Windows startup script
-│   ├── start_web_ui.sh    # Linux/Mac startup script
-│   └── README.md           # Web UI documentation
+│   ├── index.html         # Main web interface (Tailwind CSS)
+│   ├── script.js          # JavaScript functionality (Alpine.js)
+│   └── server.py          # Local web server
 ├── logs/                   # System logs
 │   └── rag_main.log       # Main application logs
 ├── main.py                # CLI interface
-├── minimal_api.py         # Simplified API server
+├── api.py                 # FastAPI server
 ├── start_api.py           # API startup script
 ├── requirements.txt       # Python dependencies
 ├── test_contract_law.txt  # Sample legal document
@@ -309,7 +273,8 @@ For issues and questions:
 
 ## 📖 Documentation
 
-For detailed documentation, see [DOCUMENTATION.md](DOCUMENTATION.md).
+- **[COMMANDS.md](COMMANDS.md)** - Complete command reference guide
+- **[DOCUMENTATION.md](DOCUMENTATION.md)** - Technical documentation and architecture details
 
 ---
 
