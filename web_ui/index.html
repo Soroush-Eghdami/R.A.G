@@ -1,138 +1,161 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart RAG for Law Students | سیستم هوشمند جستجوی حقوقی</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Smart RAG for Law Students</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body>
-    <div class="container">
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200" x-data="ragApp()" x-init="init()">
+    <div class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="logo">
-                    <i class="fas fa-balance-scale"></i>
-                    <h1>Smart RAG for Law Students</h1>
-                    <p class="persian-subtitle">سیستم هوشمند جستجوی حقوقی</p>
-                </div>
-                <div class="header-actions">
-                    <button id="uploadBtn" class="btn btn-secondary">
-                        <i class="fas fa-upload"></i> Upload Documents
-                    </button>
-                    <button id="statsBtn" class="btn btn-outline">
-                        <i class="fas fa-chart-bar"></i> Stats
-                    </button>
+        <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-balance-scale text-2xl text-primary-600 dark:text-primary-400"></i>
+                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Smart RAG for Law Students</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button @click="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-moon dark:hidden text-gray-600"></i>
+                            <i class="fas fa-sun hidden dark:inline text-yellow-400"></i>
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <div :class="connectionStatus === 'connected' ? 'bg-green-500' : connectionStatus === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'" class="w-2 h-2 rounded-full animate-pulse"></div>
+                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="connectionStatusText"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="flex-1 flex overflow-hidden">
             <!-- Sidebar -->
-            <aside class="sidebar">
-                <div class="sidebar-content">
-                    <div class="nav-section">
-                        <h3>Navigation</h3>
-                        <nav class="nav-menu">
-                            <a href="#" class="nav-item active" data-section="chat">
-                                <i class="fas fa-comments"></i>
-                                <span>Ask Questions</span>
-                            </a>
-                            <a href="#" class="nav-item" data-section="upload">
-                                <i class="fas fa-file-upload"></i>
-                                <span>Upload Documents</span>
-                            </a>
-                            <a href="#" class="nav-item" data-section="search">
-                                <i class="fas fa-search"></i>
-                                <span>Search Topics</span>
-                            </a>
-                            <a href="#" class="nav-item" data-section="settings">
-                                <i class="fas fa-cog"></i>
-                                <span>Settings</span>
-                            </a>
-                        </nav>
-                    </div>
-                    
-                    <div class="quick-actions">
-                        <h3>Quick Actions</h3>
-                        <div class="action-buttons">
-                            <button class="action-btn" data-topic="contract-law">
-                                <i class="fas fa-file-contract"></i>
-                                Contract Law
-                            </button>
-                            <button class="action-btn" data-topic="tort-law">
-                                <i class="fas fa-gavel"></i>
-                                Tort Law
-                            </button>
-                            <button class="action-btn" data-topic="criminal-law">
-                                <i class="fas fa-handcuffs"></i>
-                                Criminal Law
-                            </button>
-                            <button class="action-btn" data-topic="constitutional-law">
-                                <i class="fas fa-landmark"></i>
-                                Constitutional Law
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+                <nav class="flex-1 p-4 space-y-2">
+                    <button @click="currentSection = 'chat'" :class="currentSection === 'chat' ? 'bg-primary-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors">
+                        <i class="fas fa-comments w-5"></i>
+                        <span>Ask Questions</span>
+                    </button>
+                    <button @click="currentSection = 'upload'" :class="currentSection === 'upload' ? 'bg-primary-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors">
+                        <i class="fas fa-upload w-5"></i>
+                        <span>Upload Documents</span>
+                    </button>
+                    <button @click="currentSection = 'settings'" :class="currentSection === 'settings' ? 'bg-primary-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors">
+                        <i class="fas fa-cog w-5"></i>
+                        <span>Settings</span>
+                    </button>
+                </nav>
             </aside>
 
             <!-- Content Area -->
-            <div class="content-area">
+            <div class="flex-1 flex flex-col overflow-hidden">
                 <!-- Chat Section -->
-                <section id="chat-section" class="content-section active">
-                    <div class="chat-container">
-                        <div class="chat-header">
-                            <h2>Ask Your Legal Questions</h2>
-                            <div class="chat-controls">
-                                <button id="clearChat" class="btn btn-outline btn-sm">
-                                    <i class="fas fa-trash"></i> Clear
-                                </button>
-                                <div class="model-status">
-                                    <span class="status-indicator" id="modelStatus"></span>
-                                    <span id="modelText">Model Status</span>
+                <div x-show="currentSection === 'chat'" x-cloak class="flex-1 flex flex-col h-full">
+                    <div class="flex-1 overflow-y-auto p-6">
+                        <div class="max-w-4xl mx-auto">
+                            <!-- Welcome Message -->
+                            <div x-show="chatHistory.length === 0" class="text-center py-12">
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900 mb-4">
+                                    <i class="fas fa-graduation-cap text-2xl text-primary-600 dark:text-primary-400"></i>
+                                </div>
+                                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome to Smart RAG</h2>
+                                <p class="text-gray-600 dark:text-gray-400 mb-6">Ask any legal question and get comprehensive answers from your knowledge base.</p>
+                                <div class="text-left max-w-md mx-auto">
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Try asking:</p>
+                                    <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <li class="flex items-start">
+                                            <i class="fas fa-chevron-right text-primary-500 mr-2 mt-1"></i>
+                                            <span>"What are the elements of negligence in tort law?"</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <i class="fas fa-chevron-right text-primary-500 mr-2 mt-1"></i>
+                                            <span>"Explain the difference between civil and criminal law"</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <i class="fas fa-chevron-right text-primary-500 mr-2 mt-1"></i>
+                                            <span>"What is the statute of limitations for contract disputes?"</span>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="welcome-message">
-                                <div class="welcome-content">
-                                    <i class="fas fa-graduation-cap"></i>
-                                    <h3>Welcome to Smart RAG for Law Students!</h3>
-                                    <p>Ask any legal question and get comprehensive answers from your knowledge base.</p>
-                                    <div class="example-questions">
-                                        <h4>Try asking:</h4>
-                                        <ul>
-                                            <li>"What are the elements of negligence in tort law?"</li>
-                                            <li>"Explain the difference between civil and criminal law"</li>
-                                            <li>"What is the statute of limitations for contract disputes?"</li>
-                                        </ul>
+
+                            <!-- Chat Messages -->
+                            <div class="space-y-4">
+                                <template x-for="(message, index) in chatHistory" :key="index">
+                                    <div :class="message.sender === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                                        <div :class="message.sender === 'user' ? 'bg-primary-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'" class="max-w-3xl rounded-2xl px-4 py-3 shadow-sm">
+                                            <div class="prose dark:prose-invert max-w-none" x-html="formatMessage(message.content)"></div>
+                                            <div class="text-xs mt-2 opacity-70" x-text="message.time"></div>
+                                            <div x-show="message.sources && message.sources.length > 0" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                                <p class="text-xs font-semibold mb-2">Sources:</p>
+                                                <div class="space-y-1">
+                                                    <template x-for="(source, idx) in message.sources" :key="idx">
+                                                        <div class="text-xs opacity-80" x-text="source.substring(0, 150) + '...'"></div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                </template>
                             </div>
                         </div>
-                        
-                        <div class="chat-input-container">
-                            <div class="chat-input-wrapper">
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                        <div class="max-w-4xl mx-auto">
+                            <div class="flex space-x-3">
                                 <textarea 
-                                    id="questionInput" 
+                                    x-model="currentQuestion"
+                                    @keydown.enter.prevent="if (!event.shiftKey) sendMessage()"
                                     placeholder="Ask your legal question here..."
-                                    rows="3"
+                                    class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+                                    rows="2"
                                 ></textarea>
-                                <button id="sendBtn" class="btn btn-primary">
+                                <button 
+                                    @click="sendMessage()"
+                                    :disabled="!currentQuestion.trim() || isLoading"
+                                    class="px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+                                >
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
                             </div>
-                            <div class="input-options">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="includeSources" checked>
+                            <div class="flex items-center justify-between mt-3">
+                                <label class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <input type="checkbox" x-model="includeSources" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                                     <span>Include sources</span>
                                 </label>
-                                <select id="topK" class="select-input">
+                                <select x-model="topK" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                                     <option value="3">Top 3 results</option>
                                     <option value="5">Top 5 results</option>
                                     <option value="10">Top 10 results</option>
@@ -140,98 +163,77 @@
                             </div>
                         </div>
                     </div>
-                </section>
+                </div>
 
                 <!-- Upload Section -->
-                <section id="upload-section" class="content-section">
-                    <div class="upload-container">
-                        <h2>Upload Legal Documents</h2>
-                        <div class="upload-area" id="uploadArea">
-                            <div class="upload-content">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <h3>Drag & Drop Files Here</h3>
-                                <p>or <button class="link-btn" id="browseFiles">browse files</button></p>
-                                <div class="supported-formats">
-                                    <span>Supported: TXT, PDF, DOCX</span>
-                                </div>
-                            </div>
-                            <input type="file" id="fileInput" multiple accept=".txt,.pdf,.docx" style="display: none;">
+                <div x-show="currentSection === 'upload'" x-cloak class="flex-1 overflow-y-auto p-6">
+                    <div class="max-w-2xl mx-auto">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Upload Legal Documents</h2>
+                        <div 
+                            @click="$refs.fileInput.click()"
+                            @dragover.prevent="isDragging = true"
+                            @dragleave.prevent="isDragging = false"
+                            @drop.prevent="handleFileDrop($event)"
+                            :class="isDragging ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-300 dark:border-gray-600'"
+                            class="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors bg-gray-50 dark:bg-gray-800"
+                        >
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Drag & Drop Files Here</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">or click to browse</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-500">Supported: TXT, PDF, DOCX</p>
+                            <input type="file" x-ref="fileInput" @change="handleFileSelect($event)" multiple accept=".txt,.pdf,.docx" class="hidden">
                         </div>
-                        
-                        <div class="upload-progress" id="uploadProgress" style="display: none;">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progressFill"></div>
-                            </div>
-                            <span class="progress-text" id="progressText">Uploading...</span>
-                        </div>
-                        
-                        <div class="uploaded-files" id="uploadedFiles"></div>
                     </div>
-                </section>
-
-                <!-- Search Section -->
-                <section id="search-section" class="content-section">
-                    <div class="search-container">
-                        <h2>Search Legal Topics</h2>
-                        <div class="search-input-wrapper">
-                            <input type="text" id="topicSearch" placeholder="Search for legal topics, cases, or concepts...">
-                            <button id="searchBtn" class="btn btn-primary">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="search-results" id="searchResults"></div>
-                    </div>
-                </section>
+                </div>
 
                 <!-- Settings Section -->
-                <section id="settings-section" class="content-section">
-                    <div class="settings-container">
-                        <h2>Settings</h2>
-                        <div class="settings-grid">
-                            <div class="setting-group">
-                                <label for="apiUrl">API URL</label>
-                                <input type="text" id="apiUrl" value="http://localhost:8000" placeholder="API endpoint URL">
+                <div x-show="currentSection === 'settings'" x-cloak class="flex-1 overflow-y-auto p-6">
+                    <div class="max-w-2xl mx-auto">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h2>
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API URL</label>
+                                <input type="text" x-model="apiUrl" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                             </div>
-                            
-                            <div class="setting-group">
-                                <label for="chunkSize">Chunk Size</label>
-                                <input type="number" id="chunkSize" value="500" min="100" max="2000">
+                            <div class="flex space-x-4">
+                                <button @click="testConnection()" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+                                    Test Connection
+                                </button>
+                                <button @click="saveSettings()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                                    Save Settings
+                                </button>
                             </div>
-                            
-                            <div class="setting-group">
-                                <label for="chunkOverlap">Chunk Overlap</label>
-                                <input type="number" id="chunkOverlap" value="50" min="0" max="500">
-                            </div>
-                            
-                            <div class="setting-group">
-                                <label for="temperature">Response Temperature</label>
-                                <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
-                                <span class="range-value" id="temperatureValue">0.7</span>
-                            </div>
-                        </div>
-                        
-                        <div class="settings-actions">
-                            <button id="saveSettings" class="btn btn-primary">Save Settings</button>
-                            <button id="testConnection" class="btn btn-outline">Test Connection</button>
                         </div>
                     </div>
-                </section>
+                </div>
             </div>
         </main>
-
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay" class="loading-overlay">
-            <div class="loading-content">
-                <div class="spinner"></div>
-                <p id="loadingText">Processing your request...</p>
-            </div>
-        </div>
-
-        <!-- Toast Notifications -->
-        <div id="toastContainer" class="toast-container"></div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div x-show="isLoading" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4">
+            <div class="flex items-center space-x-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <p class="text-gray-900 dark:text-white" x-text="loadingText"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="fixed top-4 right-4 z-50 space-y-2">
+        <template x-for="(toast, index) in toasts" :key="index">
+            <div 
+                :class="toast.type === 'success' ? 'bg-green-500' : toast.type === 'error' ? 'bg-red-500' : 'bg-blue-500'"
+                class="text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-in"
+            >
+                <i :class="toast.type === 'success' ? 'fa-check-circle' : toast.type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'" class="fas"></i>
+                <span x-text="toast.message"></span>
+            </div>
+        </template>
+    </div>
+
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -38,29 +38,29 @@ def start_server(port=8080, open_browser=True):
     
     # Create the server
     with socketserver.TCPServer(("", port), CustomHTTPRequestHandler) as httpd:
-        print(f"🚀 Smart RAG Web UI Server")
-        print(f"📁 Serving from: {web_ui_dir}")
-        print(f"🌐 Local URL: http://localhost:{port}")
-        print(f"🔗 Public URL: http://127.0.0.1:{port}")
-        print("\n📋 Instructions:")
-        print("1. Make sure your RAG API is running: python -m app.api")
+        print(f"Smart RAG Web UI Server")
+        print(f"Serving from: {web_ui_dir}")
+        print(f"Local URL: http://localhost:{port}")
+        print(f"Public URL: http://127.0.0.1:{port}")
+        print("\nInstructions:")
+        print("1. Make sure your RAG API is running: python api.py")
         print("2. Open your browser to the URL above")
         print("3. Start asking legal questions!")
-        print("\n⏹️  Press Ctrl+C to stop the server")
+        print("\nPress Ctrl+C to stop the server")
         print("-" * 50)
         
         # Open browser automatically
         if open_browser:
             try:
                 webbrowser.open(f'http://localhost:{port}')
-                print("🌐 Browser opened automatically")
+                print("Browser opened automatically")
             except:
-                print("⚠️  Could not open browser automatically")
+                print("Could not open browser automatically")
         
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n\n👋 Server stopped. Goodbye!")
+            print("\n\nServer stopped. Goodbye!")
             sys.exit(0)
 
 def main():
@@ -82,8 +82,8 @@ def main():
     sock.close()
     
     if result == 0:
-        print(f"❌ Port {args.port} is already in use!")
-        print(f"💡 Try a different port: python server.py --port 8081")
+        print(f"Port {args.port} is already in use!")
+        print(f"Try a different port: python server.py --port 8081")
         sys.exit(1)
     
     start_server(port=args.port, open_browser=not args.no_browser)

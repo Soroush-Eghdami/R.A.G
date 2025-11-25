@@ -62,10 +62,10 @@ def load_from_multiple_apis(api_configs: List[Dict[str, Any]]) -> List[str]:
             
             content = load_from_api(url, headers, params)
             contents.append(content)
-            print(f"✅ Loaded from API {i+1}: {url}")
+            print(f"Loaded from API {i+1}: {url}")
             
         except Exception as e:
-            print(f"❌ Error loading from API {i+1}: {e}")
+            print(f"Error loading from API {i+1}: {e}")
     
     return contents
 

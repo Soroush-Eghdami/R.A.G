@@ -69,8 +69,12 @@ class EmbeddingModel:
         if self.provider == "sentence-transformers" and self.model:
             try:
                 # sentence-transformers handles single text
-                embedding = self.model.encode(text, convert_to_numpy=False, show_progress_bar=False)
-                # Convert to list if it's a numpy array
+                embedding = self.model.encode(text, convert_to_numpy=True, show_progress_bar=False)
+                # Convert numpy array to list
+                import numpy as np
+                if isinstance(embedding, np.ndarray):
+                    return embedding.tolist()
+                # If it's already a list or other iterable
                 if hasattr(embedding, 'tolist'):
                     return embedding.tolist()
                 return list(embedding)
@@ -107,14 +111,16 @@ class EmbeddingModel:
                 # sentence-transformers can batch process - much faster!
                 embeddings = self.model.encode(
                     texts, 
-                    convert_to_numpy=False, 
+                    convert_to_numpy=True,  # Convert to numpy for easier handling
                     show_progress_bar=False,
                     batch_size=32  # Process in batches for better performance
                 )
-                # Convert to list of lists
-                if hasattr(embeddings, 'tolist'):
+                # Convert numpy array to list of lists
+                import numpy as np
+                if isinstance(embeddings, np.ndarray):
                     return embeddings.tolist()
-                return [list(emb) for emb in embeddings]
+                # If it's already a list or other iterable, convert each element
+                return [emb.tolist() if hasattr(emb, 'tolist') else list(emb) for emb in embeddings]
             except Exception as e:
                 print(f"Error generating batch embeddings with sentence-transformers: {e}")
                 # Fall back to sequential processing

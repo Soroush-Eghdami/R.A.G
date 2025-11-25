@@ -25,8 +25,10 @@ def setup_logging(
         log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     
     # Create logs directory if it doesn't exist
-    if log_file and not os.path.exists(os.path.dirname(log_file)):
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    if log_file:
+        log_dir = os.path.dirname(log_file)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
     
     # Configure logging
     logging.basicConfig(

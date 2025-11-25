@@ -52,13 +52,15 @@ def setup_environment():
         if 'all-minilm:latest' not in available_models:
             print("Note: Ollama embedding model not found, but using sentence-transformers instead.")
             print("If you want to use Ollama embeddings, pull with: ollama pull all-minilm:latest")
+        
+        return True  # Successfully connected to Ollama
             
     except Exception as e:
-        print(f"Error connecting to Ollama: {e}")
-        print("Please make sure Ollama is installed and running.")
-        return False
-    
-    return True
+        print(f"Warning: Could not connect to Ollama: {e}")
+        print("Note: Ollama is needed for querying, but ingestion can proceed with sentence-transformers.")
+        print("Please make sure Ollama is installed and running before querying.")
+        # Don't fail completely - ingestion can work without Ollama
+        return True  # Changed to True to allow ingestion without Ollama
 
 def ingest_data(args):
     """Handle data ingestion."""
@@ -125,19 +127,19 @@ def ask_question(question: str, top_k: int = 3):
 
 def interactive_mode():
     """Run in interactive question-answering mode."""
-    print("\n🎓 Smart RAG for Law Students - Interactive Mode")
+    print("\nSmart RAG for Law Students - Interactive Mode")
     print("Type 'quit' or 'exit' to stop, 'help' for commands")
     print("-" * 50)
     
     while True:
         try:
-            question = input("\n❓ Your question: ").strip()
+            question = input("\nYour question: ").strip()
             
             if question.lower() in ['quit', 'exit', 'q']:
-                print("👋 Goodbye!")
+                print("Goodbye!")
                 break
             elif question.lower() == 'help':
-                print("\n📋 Available commands:")
+                print("\nAvailable commands:")
                 print("  - Ask any legal question")
                 print("  - 'stats' - Show system statistics")
                 print("  - 'quit' or 'exit' - Exit the program")
@@ -145,7 +147,7 @@ def interactive_mode():
             elif question.lower() == 'stats':
                 retriever = DocumentRetriever()
                 stats = retriever.get_collection_stats()
-                print(f"\n📊 System Statistics:")
+                print(f"\nSystem Statistics:")
                 print(f"  - Total documents: {stats.get('total_documents', 0)}")
                 print(f"  - Collection: {stats.get('collection_name', 'N/A')}")
                 print(f"  - Status: {stats.get('status', 'unknown')}")
@@ -156,7 +158,7 @@ def interactive_mode():
             ask_question(question)
             
         except KeyboardInterrupt:
-            print("\n👋 Goodbye!")
+            print("\nGoodbye!")
             break
         except Exception as e:
             print(f"Error: {e}")
@@ -182,15 +184,21 @@ def main():
         sys.exit(1)
     
     # Handle different modes
-    if args.ingest_dir or args.ingest_file or args.api:
-        ingest_data(args)
-    elif args.question:
-        ask_question(args.question, args.top_k)
-    elif args.interactive:
-        interactive_mode()
-    else:
-        # Default to interactive mode
-        interactive_mode()
+    try:
+        if args.ingest_dir or args.ingest_file or args.api:
+            ingest_data(args)
+        elif args.question:
+            ask_question(args.question, args.top_k)
+        elif args.interactive:
+            interactive_mode()
+        else:
+            # Default to interactive mode
+            interactive_mode()
+    except Exception as e:
+        print(f"Error in main execution: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -58,7 +58,7 @@ class DataIngestion:
                 elif file_type == 'docx':
                     texts = load_docx_files(directory_path)
                 else:
-                    print(f"⚠️ Unsupported file type: {file_type}")
+                    print(f"Unsupported file type: {file_type}")
                     continue
                 
                 all_texts.extend(texts)

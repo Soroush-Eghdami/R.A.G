@@ -66,9 +66,9 @@ def load_pdf_files(directory_path: str) -> List[str]:
             try:
                 content = load_pdf_file(file_path)
                 contents.append(content)
-                print(f"✅ Loaded: {filename}")
+                print(f"Loaded: {filename}")
             except Exception as e:
-                print(f"❌ Error loading {filename}: {e}")
+                print(f"Error loading {filename}: {e}")
     
     return contents
 

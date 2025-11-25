@@ -38,7 +38,7 @@ class VectorStore:
             embeddings=embeddings,
             ids=ids
         )
-        print(f"✅ Added {len(chunks)} documents to the collection '{self.collection_name}'.")
+        print(f"Added {len(chunks)} documents to the collection '{self.collection_name}'.")
 
     def query(self, query_text, top_k=3):
         """
