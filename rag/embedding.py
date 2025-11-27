@@ -109,10 +109,11 @@ class EmbeddingModel:
         if self.provider == "sentence-transformers" and self.model:
             try:
                 # sentence-transformers can batch process - much faster!
+                # Show progress bar for better user feedback
                 embeddings = self.model.encode(
                     texts, 
                     convert_to_numpy=True,  # Convert to numpy for easier handling
-                    show_progress_bar=False,
+                    show_progress_bar=True,  # Show progress bar
                     batch_size=32  # Process in batches for better performance
                 )
                 # Convert numpy array to list of lists
@@ -128,9 +129,14 @@ class EmbeddingModel:
         else:
             # Use Ollama (sequential processing)
             embeddings = []
-            for text in texts:
+            total = len(texts)
+            for i, text in enumerate(texts, 1):
+                if total > 5:  # Only show progress for larger batches
+                    print(f"  Generating embedding {i}/{total}...", end='\r')
                 embedding = self.encode_text(text)
                 embeddings.append(embedding)
+            if total > 5:
+                print()  # New line after progress
             return embeddings
     
     def embed_text(self, text: Union[str, List[str]]) -> Union[List[float], List[List[float]]]:

@@ -15,12 +15,18 @@ function ragApp() {
         isDragging: false,
         toasts: [],
         darkMode: false,
+        availableModels: [],
+        currentModel: 'Loading...',
+        selectedModel: '',
+        isLoadingModels: false,
 
         // Initialize
         init() {
             this.loadSettings();
             this.checkConnection();
             this.setupTheme();
+            this.loadCurrentModel();
+            this.loadAvailableModels();
             setInterval(() => this.checkConnection(), 30000); // Check every 30 seconds
         },
 
@@ -196,6 +202,96 @@ function ragApp() {
                 this.showToast('Connection successful!', 'success');
             } else {
                 this.showToast('Connection failed. Check your API URL.', 'error');
+            }
+        },
+
+        // Model Management
+        async loadCurrentModel() {
+            try {
+                const response = await fetch(`${this.apiUrl}/health`);
+                const data = await response.json();
+                if (data.current_model) {
+                    this.currentModel = data.current_model;
+                    this.selectedModel = data.current_model;
+                }
+            } catch (error) {
+                console.error('Error loading current model:', error);
+            }
+        },
+
+        async loadAvailableModels() {
+            this.isLoadingModels = true;
+            try {
+                const response = await fetch(`${this.apiUrl}/models`);
+                const data = await response.json();
+                if (data.available_models) {
+                    this.availableModels = data.available_models;
+                    if (data.current_model) {
+                        this.currentModel = data.current_model;
+                        if (!this.selectedModel) {
+                            this.selectedModel = data.current_model;
+                        }
+                    }
+                }
+            } catch (error) {
+                this.showToast(`Error loading models: ${error.message}`, 'error');
+            } finally {
+                this.isLoadingModels = false;
+            }
+        },
+
+        async changeModel() {
+            if (!this.selectedModel || this.selectedModel === this.currentModel) return;
+
+            this.isLoading = true;
+            this.loadingText = 'Changing model...';
+            try {
+                const response = await fetch(`${this.apiUrl}/models/change`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model_name: this.selectedModel
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    this.currentModel = this.selectedModel;
+                    this.showToast(`Model changed to ${this.selectedModel}`, 'success');
+                } else {
+                    this.showToast(`Error: ${data.detail || 'Failed to change model'}`, 'error');
+                }
+            } catch (error) {
+                this.showToast(`Error changing model: ${error.message}`, 'error');
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async clearDatabase() {
+            if (!confirm('⚠️ Are you sure you want to clear the database? This action cannot be undone.')) {
+                return;
+            }
+
+            this.isLoading = true;
+            this.loadingText = 'Clearing database...';
+            try {
+                const response = await fetch(`${this.apiUrl}/database/clear`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    this.showToast('Database cleared successfully!', 'success');
+                } else {
+                    this.showToast(`Error: ${data.detail || 'Failed to clear database'}`, 'error');
+                }
+            } catch (error) {
+                this.showToast(`Error clearing database: ${error.message}`, 'error');
+            } finally {
+                this.isLoading = false;
             }
         },
 

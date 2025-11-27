@@ -20,7 +20,7 @@ EMBEDDING_PROVIDER = "sentence-transformers"  # Options: "ollama" or "sentence-t
 # - "llama3.1:8b" - Better quality, same size (recommended upgrade)
 # - "llama3.2:3b" - Faster, lighter (3 billion parameters)
 # - "llama3.2:1b" - Very fast, lightest (1 billion parameters)
-OLLAMA_MODEL = "llama3:8b"  # Current model (8 billion parameters)
+OLLAMA_MODEL = "llama3.1:8b"  # Current model (8 billion parameters)
 OLLAMA_EMBEDDING_MODEL = "all-minilm:latest"  # Ollama embedding model (fallback)
 
 # Chunking

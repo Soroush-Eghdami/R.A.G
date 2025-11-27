@@ -14,7 +14,7 @@ def chunk_text(text, preserve_structure: bool = True):
     Args:
         text: Text to chunk
         preserve_structure: If True, tries to preserve document structure (headings, sections)
-
+    
     Example:
         If CHUNK_SIZE=500 and CHUNK_OVERLAP=50,
         chunks will be 500 characters long, and
@@ -39,6 +39,7 @@ def chunk_structured_text(text):
     """
     Chunk text that contains structured markers (headings from .docx files).
     Tries to keep sections together and preserve heading context.
+    Improved to better handle .docx structure.
     """
     chunks = []
     
@@ -80,12 +81,14 @@ def chunk_structured_text(text):
     
     # Build chunks preserving structure
     current_chunk = ""
-    current_heading = None
-    current_heading_level = 0
     heading_context = []  # Stack of headings for nested sections
     
     for section in sections:
         if section["type"] == "heading":
+            # Save current chunk if it has content
+            if current_chunk.strip() and len(current_chunk.strip()) > 50:
+                chunks.append(current_chunk.strip())
+            
             # Update heading context stack
             heading_level = section["level"]
             # Remove headings at same or deeper level
@@ -96,54 +99,85 @@ def chunk_structured_text(text):
                 "text": section["text"]
             })
             
-            # Start new chunk with heading context (don't save old chunk yet, wait for content)
-            current_heading = section["text"]
-            current_heading_level = heading_level
-            
-            # Build heading prefix with hierarchy
+            # Start new chunk with heading context
             if heading_context:
                 heading_prefix = " > ".join([h["text"] for h in heading_context])
                 current_chunk = f"[Section: {heading_prefix}]\n"
             else:
-                current_chunk = f"[Section: {current_heading}]\n"
+                current_chunk = f"[Section: {section['text']}]\n"
         else:
             # Add content to current chunk
             content = section["text"]
             
-            # If adding this content would exceed chunk size
-            if len(current_chunk) + len(content) > CHUNK_SIZE:
-                # Only save if chunk has meaningful content (more than just heading)
-                chunk_text = current_chunk.strip()
-                if chunk_text and len(chunk_text) > 100:  # Minimum meaningful chunk size
-                    chunks.append(chunk_text)
-                    # Start new chunk with heading context
-                    if heading_context:
-                        heading_prefix = " > ".join([h["text"] for h in heading_context])
+            # Clean up content - remove excessive whitespace
+            content = re.sub(r'\n{3,}', '\n\n', content)  # Max 2 newlines
+            content = re.sub(r' +', ' ', content)  # Multiple spaces to single
+            
+            # If adding this content would exceed chunk size significantly
+            if len(current_chunk) + len(content) > CHUNK_SIZE * 1.5:
+                # Save current chunk if it has meaningful content
+                if current_chunk.strip() and len(current_chunk.strip()) > 100:
+                    chunks.append(current_chunk.strip())
+                
+                # Start new chunk with heading context and part of content
+                if heading_context:
+                    heading_prefix = " > ".join([h["text"] for h in heading_context])
+                    # Try to split content at sentence boundary
+                    remaining_space = CHUNK_SIZE - len(f"[Section: {heading_prefix}]\n")
+                    if len(content) > remaining_space:
+                        # Find sentence boundary
+                        split_pos = remaining_space
+                        for i in range(min(remaining_space, len(content) - 1), max(0, remaining_space - 200), -1):
+                            if content[i] in '.!?\n':
+                                split_pos = i + 1
+                                break
+                        current_chunk = f"[Section: {heading_prefix}]\n{content[:split_pos].strip()}"
+                        # Add remaining content as new section
+                        if split_pos < len(content):
+                            sections.insert(sections.index(section) + 1, {
+                                "type": "content",
+                                "text": content[split_pos:].strip()
+                            })
+                    else:
                         current_chunk = f"[Section: {heading_prefix}]\n{content}"
-                    elif current_heading:
-                        current_chunk = f"[Section: {current_heading}]\n{content}"
+                else:
+                    # No heading context, split content intelligently
+                    if len(content) > CHUNK_SIZE:
+                        split_pos = CHUNK_SIZE
+                        for i in range(CHUNK_SIZE, max(0, CHUNK_SIZE - 200), -1):
+                            if content[i] in '.!?\n':
+                                split_pos = i + 1
+                                break
+                        current_chunk = content[:split_pos].strip()
+                        if split_pos < len(content):
+                            sections.insert(sections.index(section) + 1, {
+                                "type": "content",
+                                "text": content[split_pos:].strip()
+                            })
                     else:
                         current_chunk = content
-                else:
-                    # Chunk too small, just add content and continue
-                    current_chunk += content + "\n"
             else:
+                # Content fits, just add it
                 current_chunk += content + "\n"
     
     # Add final chunk
-    if current_chunk.strip():
+    if current_chunk.strip() and len(current_chunk.strip()) > 50:
         chunks.append(current_chunk.strip())
     
-    # If chunks are too large, split them further
+    # Post-process: ensure chunks are within size limits
     final_chunks = []
     for chunk in chunks:
         if len(chunk) <= CHUNK_SIZE:
             final_chunks.append(chunk)
         else:
             # Split large chunks while preserving structure
-            final_chunks.extend(split_large_chunk(chunk))
+            split_chunks = split_large_chunk(chunk)
+            final_chunks.extend(split_chunks)
     
-    return final_chunks
+    # Remove empty or very small chunks
+    final_chunks = [c for c in final_chunks if c.strip() and len(c.strip()) > 50]
+    
+    return final_chunks if final_chunks else chunk_simple_text(text)
 
 
 def split_large_chunk(chunk):

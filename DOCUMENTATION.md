@@ -74,9 +74,9 @@ R.A.G/
 
 1. **Python 3.13.3** (as specified)
 2. **Ollama** installed and running
-3. **Required Ollama models**:
-   - `llama3` for text generation
-   - `nomic-embed-text` for embeddings
+3. **Recommended Ollama models**:
+   - `llama3.1:8b` or `llama3:8b` for text generation (recommended: `llama3.1:8b`)
+   - `all-minilm:latest` or `nomic-embed-text:latest` for embeddings (optional, sentence-transformers is default)
 
 ### Setup Steps
 
@@ -147,6 +147,8 @@ See [COMMANDS.md](COMMANDS.md) for detailed command reference.
 - Dark/light mode toggle with system preference detection
 - Real-time chat interface
 - Document upload support
+- Model selection (LLM and embedding models)
+- Database management (clear database)
 - System settings and configuration
 - Connection status indicator
 - Modern, responsive design with Tailwind CSS
@@ -160,6 +162,9 @@ The system provides a REST API with the following endpoints:
 - `POST /query` - Ask questions
 - `POST /ingest` - Ingest data
 - `GET /stats` - System statistics
+- `GET /models` - List available Ollama models
+- `POST /models/change` - Change LLM model
+- `POST /database/clear` - Clear the database
 - `GET /docs` - Interactive API documentation (Swagger UI)
 
 **Example API Usage:**
@@ -182,9 +187,13 @@ For detailed API usage examples, see [COMMANDS.md](COMMANDS.md).
 ### Model Configuration (`rag/config.py`)
 
 ```python
-# Ollama models
-OLLAMA_MODEL = "llama3"                    # Text generation model
-OLLAMA_EMBEDDING_MODEL = "nomic-embed-text" # Embedding model
+# LLM model (for text generation)
+OLLAMA_MODEL = "llama3.1:8b"              # Default LLM model (recommended: llama3.1:8b)
+
+# Embedding model configuration
+EMBEDDING_MODEL = "sentence-transformers:paraphrase-multilingual-MiniLM-L12-v2"  # Default embedding
+EMBEDDING_PROVIDER = "sentence-transformers"  # Provider: "ollama" or "sentence-transformers"
+OLLAMA_EMBEDDING_MODEL = "all-minilm:latest"  # Ollama embedding model (fallback)
 
 # Chunking settings
 CHUNK_SIZE = 500                           # Characters per chunk

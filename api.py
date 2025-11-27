@@ -35,11 +35,14 @@ app.add_middleware(
     allow_headers=["*"],    # Allow all headers
 )
 
-# Initialize components
+# Initialize components (will be reinitialized when model changes)
 retriever = DocumentRetriever()
 generator = LLMGenerator()
 ingestion = DataIngestion()
 logger = RAGLogger("api")
+
+# Current model (can be changed via API)
+current_model = None
 
 # Pydantic models
 class QueryRequest(BaseModel):
@@ -66,6 +69,14 @@ class HealthResponse(BaseModel):
     message: str
     model_available: Optional[bool] = None
     collection_stats: Optional[Dict[str, Any]] = None
+    current_model: Optional[str] = None
+
+class ModelListResponse(BaseModel):
+    available_models: List[str]
+    current_model: Optional[str] = None
+
+class ModelChangeRequest(BaseModel):
+    model_name: str
 
 # Health check endpoint
 @app.get("/health", response_model=HealthResponse)
@@ -79,13 +90,81 @@ async def health_check():
             status="healthy" if model_available else "degraded",
             message="RAG API is running",
             model_available=model_available,
-            collection_stats=collection_stats
+            collection_stats=collection_stats,
+            current_model=generator.model_name
         )
     except Exception as e:
         return HealthResponse(
             status="error",
             message=f"Health check failed: {str(e)}"
         )
+
+# Get available models
+@app.get("/models", response_model=ModelListResponse)
+async def get_models():
+    """Get list of available Ollama models."""
+    try:
+        import ollama
+        client = ollama.Client()
+        models_response = client.list()
+        
+        available_models = []
+        models_list = models_response.get('models', [])
+        if not models_list and hasattr(models_response, 'models'):
+            models_list = models_response.models
+        
+        for model in models_list:
+            # Handle Model object (has .model attribute)
+            if hasattr(model, 'model'):
+                model_name = model.model
+            # Handle dict format
+            elif isinstance(model, dict):
+                model_name = model.get('name', model.get('model', ''))
+            # Handle string format
+            else:
+                model_name = str(model)
+            
+            if model_name:
+                available_models.append(model_name)
+        
+        # Remove duplicates and sort
+        available_models = sorted(list(set(available_models)))
+        
+        return ModelListResponse(
+            available_models=available_models,
+            current_model=generator.model_name
+        )
+    except Exception as e:
+        logger.log_error("get_models", str(e))
+        raise HTTPException(status_code=500, detail=f"Error getting models: {str(e)}")
+
+# Change model
+@app.post("/models/change")
+async def change_model(request: ModelChangeRequest):
+    """Change the LLM model."""
+    try:
+        global generator
+        # Create new generator with the selected model
+        generator = LLMGenerator(model_name=request.model_name)
+        
+        # Verify model is available
+        if not generator.check_model_availability():
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Model '{request.model_name}' is not available. Please pull it with: ollama pull {request.model_name}"
+            )
+        
+        logger.log_info(f"Model changed to: {request.model_name}")
+        return {
+            "status": "success",
+            "message": f"Model changed to {request.model_name}",
+            "model": request.model_name
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.log_error("change_model", str(e))
+        raise HTTPException(status_code=500, detail=f"Error changing model: {str(e)}")
 
 # Query endpoint
 @app.post("/query", response_model=QueryResponse)
@@ -163,6 +242,29 @@ async def get_stats():
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting stats: {str(e)}")
+
+# Clear database endpoint
+@app.post("/database/clear")
+async def clear_database():
+    """
+    Clear the entire database (delete all documents).
+    """
+    try:
+        from rag.vectorstore import VectorStore
+        vectorstore = VectorStore()
+        success = vectorstore.delete_collection()
+        
+        if success:
+            logger.log_info("Database cleared successfully")
+            return {
+                "status": "success",
+                "message": "Database cleared successfully"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to clear database")
+    except Exception as e:
+        logger.log_error("clear_database", str(e))
+        raise HTTPException(status_code=500, detail=f"Error clearing database: {str(e)}")
 
 # Root endpoint
 @app.get("/")

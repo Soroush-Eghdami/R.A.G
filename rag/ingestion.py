@@ -13,14 +13,20 @@ from .vectorstore import VectorStore
 from .config import DATA_DIR
 
 class DataIngestion:
-    def __init__(self, collection_name="student_rag"):
+    def __init__(self, collection_name="student_rag", embedding_model=None, embedding_provider=None):
         """
         Initialize the data ingestion pipeline.
         
         Args:
             collection_name: Name of the ChromaDB collection to use
+            embedding_model: Custom embedding model name (optional)
+            embedding_provider: Custom embedding provider (optional)
         """
-        self.vectorstore = VectorStore(collection_name=collection_name)
+        self.vectorstore = VectorStore(
+            collection_name=collection_name,
+            embedding_model=embedding_model,
+            embedding_provider=embedding_provider
+        )
         self.collection_name = collection_name
         
     def ingest_from_directory(self, directory_path: str, file_types: List[str] = None) -> Dict[str, Any]:
@@ -100,6 +106,7 @@ class DataIngestion:
         try:
             file_extension = os.path.splitext(file_path)[1].lower()
             
+            print(f"Step 1/4: Loading {file_extension.upper()} file...")
             if file_extension == '.txt':
                 from .loaders.txt_loader import load_txt_file
                 text = load_txt_file(file_path)
@@ -115,9 +122,18 @@ class DataIngestion:
                     'error': f'Unsupported file type: {file_extension}'
                 }
             
+            print(f"✓ File loaded ({len(text)} characters)")
+            print(f"Step 2/4: Chunking document...")
+            
             # Chunk and store
             chunks = chunk_multiple_texts([text])
+            print(f"✓ Document chunked into {len(chunks)} chunks")
+            
+            print(f"Step 3/4: Generating embeddings (this may take a moment)...")
+            print(f"Step 4/4: Storing in vector database...")
             self.vectorstore.add_documents(chunks)
+            
+            print(f"✓ Successfully ingested {len(chunks)} chunks from {os.path.basename(file_path)}")
             
             return {
                 'file_path': file_path,
@@ -126,6 +142,9 @@ class DataIngestion:
             }
             
         except Exception as e:
+            import traceback
+            print(f"✗ Error ingesting file: {str(e)}")
+            traceback.print_exc()
             return {
                 'file_path': file_path,
                 'status': 'error',

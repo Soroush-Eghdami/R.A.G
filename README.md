@@ -64,15 +64,21 @@ For detailed command reference, see **[COMMANDS.md](COMMANDS.md)**.
 
 **Quick Examples:**
 ```bash
-# Interactive mode (recommended)
-python main.py --interactive
+# Interactive mode (recommended) - with model selection
+python main.py --interactive --select-model
 
 # Ask a single question
 python main.py --question "What are the key elements of a valid contract?"
 
-# Ingest documents
-python main.py --ingest-file "data/raw/document.docx"
-python main.py --ingest-dir "data/raw"
+# Ingest documents with model selection
+python main.py --ingest-file "data/raw/document.docx" --select-embedding
+python main.py --ingest-dir "data/raw" --select-embedding
+
+# Specify models directly
+python main.py --ingest-file "data/raw/document.docx" \
+  --embedding-model "paraphrase-multilingual-MiniLM-L12-v2" \
+  --embedding-provider "sentence-transformers" \
+  --model "llama3.1:8b"
 ```
 
 ### 🌐 Web Interface
@@ -96,6 +102,8 @@ python main.py --ingest-dir "data/raw"
 - Dark/light mode toggle
 - Real-time chat interface
 - Document upload support
+- Model selection (LLM and embedding models)
+- Database management (clear database)
 - System settings
 - Connection status indicator
 
@@ -176,12 +184,45 @@ R.A.G/
 
 ## ⚙️ Configuration
 
-Edit `rag/config.py` to customize:
+### Model Selection
+
+You can select models interactively or via command line:
+
+**Interactive Selection:**
+```bash
+# Select LLM model for querying
+python main.py --interactive --select-model
+
+# Select embedding model for ingestion
+python main.py --ingest-file "data/raw/document.docx" --select-embedding
+```
+
+**Command Line:**
+```bash
+# Specify LLM model
+python main.py --question "..." --model "llama3.1:8b"
+
+# Specify embedding model
+python main.py --ingest-file "..." \
+  --embedding-model "paraphrase-multilingual-MiniLM-L12-v2" \
+  --embedding-provider "sentence-transformers"
+```
+
+**Available Models:**
+- **LLM Models**: `llama3.1:8b` (recommended), `llama3:8b`, `llama3.2:3b`
+- **Embedding Models**: 
+  - Ollama: `all-minilm:latest`, `nomic-embed-text:latest`
+  - Sentence-Transformers: `paraphrase-multilingual-MiniLM-L12-v2` (multilingual, recommended)
+
+### Configuration File
+
+Edit `rag/config.py` to customize defaults:
 
 ```python
 # Model settings
-OLLAMA_MODEL = "llama3:8b"                    # Text generation
-OLLAMA_EMBEDDING_MODEL = "all-minilm:latest"  # Embeddings
+OLLAMA_MODEL = "llama3.1:8b"                  # Default LLM model
+EMBEDDING_MODEL = "sentence-transformers:paraphrase-multilingual-MiniLM-L12-v2"  # Default embedding
+EMBEDDING_PROVIDER = "sentence-transformers"  # Provider: "ollama" or "sentence-transformers"
 
 # Chunking settings
 CHUNK_SIZE = 500                              # Characters per chunk
