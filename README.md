@@ -55,12 +55,10 @@ Your RAG system is now fully functional with both CLI and Web UI modes! The syst
 ### 🎯 Quick Start
 
 1. **Add your legal documents** to `data/raw/` directory
-2. **Ingest the documents** (see [COMMANDS.md](COMMANDS.md) for details)
+2. **Ingest the documents** using: `python main.py --ingest-dir "data/raw"`
 3. **Start asking questions** via CLI or Web UI
 
 ### 💻 Command Line Interface
-
-For detailed command reference, see **[COMMANDS.md](COMMANDS.md)**.
 
 **Quick Examples:**
 ```bash
@@ -181,7 +179,6 @@ R.A.G/
 - `data/chroma_db/` - Vector database (auto-created)
 - `logs/` - System logs
 - `__pycache__/` - Python cache files
-- `COMMANDS.md` - Local command reference
 
 ## ⚙️ Configuration
 
@@ -313,7 +310,6 @@ For issues and questions:
 
 ## 📖 Documentation
 
-- **[COMMANDS.md](COMMANDS.md)** - Complete command reference guide
 - **[DOCUMENTATION.md](DOCUMENTATION.md)** - Technical documentation and architecture details
 
 ---

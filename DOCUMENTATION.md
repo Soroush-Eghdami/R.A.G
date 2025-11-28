@@ -69,7 +69,6 @@ R.A.G/
 - `data/chroma_db/` - Vector database (auto-created)
 - `logs/` - System logs
 - `__pycache__/` - Python cache files
-- `COMMANDS.md` - Local command reference
 
 ## Installation
 
@@ -117,8 +116,6 @@ R.A.G/
 
 The RAG system has been tested and verified to work correctly with both CLI and Web UI modes.
 
-> **📋 For complete command reference, see [COMMANDS.md](COMMANDS.md)**
-
 ### 1. Command Line Interface
 
 **Quick Examples:**
@@ -126,8 +123,8 @@ The RAG system has been tested and verified to work correctly with both CLI and 
 - Single question: `python main.py --question "Your question"`
 - Ingest file: `python main.py --ingest-file "path/to/file.docx"`
 - Ingest directory: `python main.py --ingest-dir "data/raw"`
-
-See [COMMANDS.md](COMMANDS.md) for detailed command reference.
+- Model selection: `python main.py --interactive --select-model`
+- Embedding selection: `python main.py --ingest-file "path/to/file.docx" --select-embedding`
 
 ### 2. Web Interface
 
@@ -184,7 +181,7 @@ response = requests.post("http://localhost:8000/query", json={
 print(response.json()["answer"])
 ```
 
-For detailed API usage examples, see [COMMANDS.md](COMMANDS.md).
+For more API usage examples, see the API documentation at `http://localhost:8000/docs` when the server is running.
 
 ## Configuration
 
