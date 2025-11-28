@@ -126,6 +126,8 @@ class DataIngestion:
             print(f"Step 2/4: Chunking document...")
             
             # Chunk and store
+            import sys
+            sys.stdout.flush()  # Ensure output is visible
             chunks = chunk_multiple_texts([text])
             print(f"✓ Document chunked into {len(chunks)} chunks")
             
