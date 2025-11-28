@@ -34,11 +34,11 @@ Smart RAG for Law Students is a Retrieval-Augmented Generation (RAG) system spec
 ```
 R.A.G/
 ├── data/
-│   ├── raw/                # Your source documents (.txt, .pdf, .docx)
-│   └── chroma_db/         # Vector database (auto-created, stores embeddings)
+│   └── raw/                # Your source documents (.txt, .pdf, .docx)
+│                           # Note: chroma_db/ is auto-created (gitignored)
 ├── rag/                    # Core RAG components
 │   ├── config.py          # Configuration settings
-│   ├── embedding.py       # Ollama embedding model
+│   ├── embedding.py       # Embedding model integration
 │   ├── chunking.py        # Text splitting logic
 │   ├── vectorstore.py     # ChromaDB management
 │   ├── generator.py       # Ollama LLM integration
@@ -56,17 +56,20 @@ R.A.G/
 │   ├── index.html         # Main web interface (Tailwind CSS)
 │   ├── script.js          # JavaScript functionality (Alpine.js)
 │   └── server.py          # Local web server
-├── logs/                   # System logs
-│   └── rag_main.log       # Main application logs
 ├── main.py                # CLI interface
-├── api.py                 # FastAPI server
-├── start_api.py           # API startup script
+├── api.py                 # FastAPI server (run with: python api.py)
 ├── requirements.txt       # Python dependencies
 ├── DOCUMENTATION.md       # Technical documentation
-├── COMMANDS.md            # Command reference (gitignored)
 ├── .gitignore            # Git ignore rules
 └── README.md             # Usage instructions
 ```
+
+**Note:** The following are gitignored and not shown in the structure:
+- `venv/` - Virtual environment
+- `data/chroma_db/` - Vector database (auto-created)
+- `logs/` - System logs
+- `__pycache__/` - Python cache files
+- `COMMANDS.md` - Local command reference
 
 ## Installation
 
@@ -134,6 +137,7 @@ See [COMMANDS.md](COMMANDS.md) for detailed command reference.
    ```bash
    python api.py
    ```
+   The API will be available at `http://localhost:8000`
 
 2. **Start the web UI** (in another terminal):
    ```bash

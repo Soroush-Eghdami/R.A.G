@@ -89,6 +89,7 @@ python main.py --ingest-file "data/raw/document.docx" \
    ```bash
    python api.py
    ```
+   The API will be available at `http://localhost:8000`
 
 2. **Start the web UI** (in another terminal):
    ```bash
@@ -136,7 +137,7 @@ python main.py --ingest-file "data/raw/document.docx" \
 
 ### 💻 Multiple Interfaces
 - **Command Line** - Fast and efficient for power users
-- **Web Interface** - User-friendly Streamlit UI
+- **Web Interface** - Modern HTML/CSS/JS interface with Tailwind CSS
 - **REST API** - For integration with other tools
 - **Interactive Mode** - Conversational Q&A experience
 
@@ -145,11 +146,11 @@ python main.py --ingest-file "data/raw/document.docx" \
 ```
 R.A.G/
 ├── data/
-│   ├── raw/                # Your legal documents (.txt, .pdf, .docx)
-│   └── chroma_db/          # Vector database (auto-created, stores embeddings)
+│   └── raw/                # Your legal documents (.txt, .pdf, .docx)
+│                           # Note: chroma_db/ is auto-created (gitignored)
 ├── rag/                    # Core RAG components
 │   ├── config.py          # Configuration settings
-│   ├── embedding.py       # Ollama embeddings
+│   ├── embedding.py       # Embedding model integration
 │   ├── chunking.py        # Text splitting logic
 │   ├── vectorstore.py     # ChromaDB management
 │   ├── generator.py       # Ollama LLM integration
@@ -163,24 +164,24 @@ R.A.G/
 │   └── utils/             # Helper utilities
 │       ├── language_utils.py    # Multilingual support
 │       └── logging_utils.py
-├── app/                    # Web interface
-│   ├── api.py             # FastAPI backend
-│   └── interface.py       # Streamlit UI
 ├── web_ui/                 # Modern HTML/CSS/JS interface
 │   ├── index.html         # Main web interface (Tailwind CSS)
 │   ├── script.js          # JavaScript functionality (Alpine.js)
 │   └── server.py          # Local web server
-├── logs/                   # System logs
-│   └── rag_main.log       # Main application logs
 ├── main.py                # CLI interface
-├── api.py                 # FastAPI server
-├── start_api.py           # API startup script
+├── api.py                 # FastAPI server (run with: python api.py)
 ├── requirements.txt       # Python dependencies
-├── test_contract_law.txt  # Sample legal document
 ├── DOCUMENTATION.md       # Technical documentation
 ├── .gitignore            # Git ignore rules
 └── README.md             # This file
 ```
+
+**Note:** The following are gitignored and not shown in the structure:
+- `venv/` - Virtual environment
+- `data/chroma_db/` - Vector database (auto-created)
+- `logs/` - System logs
+- `__pycache__/` - Python cache files
+- `COMMANDS.md` - Local command reference
 
 ## ⚙️ Configuration
 
@@ -289,7 +290,6 @@ response = requests.post("http://localhost:8000/ingest", json={
 - **Ollama** with `llama3:8b` and `all-minilm:latest` models
 - **ChromaDB** for vector storage
 - **FastAPI** for web API
-- **Streamlit** for web interface
 
 ## 🤝 Contributing
 
