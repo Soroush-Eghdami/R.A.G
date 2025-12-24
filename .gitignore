@@ -84,3 +84,7 @@ site/
 
 # Commands reference (local only)
 COMMANDS.md
+README.pdf
+DOCUMENTATION.pdf
+COMMANDS.pdf
+*.pdf
