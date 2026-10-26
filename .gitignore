@@ -22,21 +22,20 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environment
+# Virtual environments
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
+.venv/
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -45,46 +44,41 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# RAG System Specific
-data/chroma_db/
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Runtime data (SQLite, uploads, Chroma, collected static)
+data/db.sqlite3
+data/*.sqlite3
+data/media/
+data/chroma/
 data/processed/
+data/static/
 logs/
 *.log
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Django
+staticfiles/
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
 
-# Temporary files
-*.tmp
-*.temp
-temp/
-tmp/
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
-# Model files (if any are downloaded)
-models/
-*.bin
-*.safetensors
-
-# Test files
-test_*.py
-*_test.py
-tests/
-test_contract_law.txt
-
-# Documentation build
-docs/_build/
-site/
-
-# Commands reference (local only)
+# Local-only reference material
+build_plan.md
 COMMANDS.md
 README.pdf
 DOCUMENTATION.pdf
 COMMANDS.pdf
-*.pdf
