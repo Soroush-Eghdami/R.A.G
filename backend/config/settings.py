@@ -26,6 +26,7 @@ env = environ.Env(
     OLLAMA_BASE_URL=(str, "http://localhost:11434"),
     OLLAMA_CONNECT_TIMEOUT=(float, 5.0),
     OLLAMA_REQUEST_TIMEOUT=(float, 600.0),
+    MODEL_CACHE_TTL=(float, 30.0),
 )
 environ.Env.read_env(ROOT_DIR / ".env")
 
@@ -128,6 +129,8 @@ STATIC_URL = "static/"
 OLLAMA_BASE_URL = env("OLLAMA_BASE_URL").rstrip("/")
 OLLAMA_CONNECT_TIMEOUT = env("OLLAMA_CONNECT_TIMEOUT")
 OLLAMA_REQUEST_TIMEOUT = env("OLLAMA_REQUEST_TIMEOUT")
+# How long /api/models/ reuses the classified model list.
+MODEL_CACHE_TTL = env("MODEL_CACHE_TTL")
 
 # Ollama cloud models send data off the machine; keep them hidden unless asked.
 SHOW_CLOUD_MODELS = env.bool("SHOW_CLOUD_MODELS", default=False)
