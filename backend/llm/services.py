@@ -1,8 +1,4 @@
-"""Django-facing glue for the Ollama model layer.
-
-Keeps the framework-free ``rag`` package unaware of Django settings and turns
-its typed errors into API-friendly data.
-"""
+"""Glue between Django settings and the rag package."""
 
 from __future__ import annotations
 

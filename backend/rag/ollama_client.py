@@ -1,15 +1,7 @@
-"""Thin, typed wrapper around the Ollama HTTP API.
+"""Typed wrapper around the Ollama HTTP API. No Django in here.
 
-This module is framework-free: it must not import Django. Callers (the ``llm``
-app, the ingestion pipeline, scripts) pass configuration in explicitly.
-
-Errors are normalized so the API layer can turn them into friendly responses
-instead of leaking httpx tracebacks:
-
-    OllamaUnavailable  -> 503 (Ollama not running / unreachable)
-    OllamaTimeout      -> 503 (Ollama accepted the connection but stalled)
-    ModelNotFound      -> 409 / 404 (model is not installed)
-    OllamaResponseError-> 502 (Ollama returned an unexpected error)
+Errors are normalized so views can map them to status codes:
+unavailable/timeout -> 503, model missing -> 409, unexpected -> 502.
 """
 
 from __future__ import annotations
@@ -231,12 +223,7 @@ class OllamaClient:
         options: dict[str, Any] | None = None,
         think: bool | None = None,
     ) -> Iterator[dict[str, Any]]:
-        """Stream chat events from Ollama.
-
-        Yields the decoded NDJSON objects. Each object may contain
-        ``message.content`` and/or ``message.thinking``; the final object has
-        ``done: true``.
-        """
+        """Yield NDJSON events. The last one has ``done: true``."""
         payload: dict[str, Any] = {
             "model": model,
             "messages": messages,

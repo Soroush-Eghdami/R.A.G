@@ -1,9 +1,7 @@
-"""Model discovery and classification for Ollama.
+"""List and classify Ollama models.
 
-Ollama exposes capabilities in ``/api/show`` (e.g. ``completion``,
-``embedding``, ``thinking``, ``vision``). Older versions do not, so we fall
-back to a name heuristic. The classified list is cached briefly because the UI
-lists models often and each entry needs one ``/api/show`` call.
+Uses capabilities from /api/show, with a name heuristic for older versions.
+The result is cached for 30s because each model costs one /api/show call.
 """
 
 from __future__ import annotations
