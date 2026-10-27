@@ -93,6 +93,12 @@ ASGI_APPLICATION = "config.asgi.application"
 # ---------------------------------------------------------------------------
 
 DATA_DIR = Path(env("DATA_DIR"))
+if not DATA_DIR.is_absolute():
+    # Resolve relative paths against the repository root, not the process cwd,
+    # so manage.py behaves the same from backend/ or the repo root.
+    DATA_DIR = ROOT_DIR / DATA_DIR
+DATA_DIR = DATA_DIR.resolve()
+
 MEDIA_ROOT = DATA_DIR / "media"
 CHROMA_DIR = DATA_DIR / "chroma"
 STATIC_ROOT = DATA_DIR / "static"
