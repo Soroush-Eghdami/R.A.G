@@ -77,9 +77,12 @@ class ConversationViewSet(viewsets.ModelViewSet):
     ) -> Response:
         parts: list[str] = []
         sources: list[dict] = []
+        rewritten = ""
         try:
             for event in services.stream_answer(conversation, question, options=options):
-                if event.type == "sources":
+                if event.type == "query":
+                    rewritten = event.text
+                elif event.type == "sources":
                     sources = services.sources_payload(event.sources)
                 elif event.type == "delta" and not event.thinking:
                     parts.append(event.text)
@@ -100,6 +103,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
             {
                 "message": MessageSerializer(message).data,
                 "sources": sources,
+                "rewritten": rewritten or None,
             }
         )
 
@@ -132,7 +136,12 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
             try:
                 for event in services.stream_answer(conversation, question, options=options):
-                    if event.type == "sources":
+                    if event.type == "query":
+                        yield sse(
+                            "query",
+                            {"original": event.original, "query": event.text},
+                        )
+                    elif event.type == "sources":
                         sources = services.sources_payload(event.sources)
                         yield sse("sources", sources)
                     elif event.type == "delta" and not event.thinking:

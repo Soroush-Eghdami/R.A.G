@@ -70,6 +70,7 @@ def pipeline_options(
         "num_ctx": data.get("num_ctx") or defaults.num_ctx,
         "temperature": defaults.temperature,
         "think": data.get("think", settings.DEFAULT_THINK),
+        "rewrite_followups": settings.REWRITE_FOLLOWUPS,
         "retrieval": RetrievalConfig(top_k=data.get("top_k") or defaults.top_k),
     }
 

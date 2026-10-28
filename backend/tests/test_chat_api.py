@@ -28,9 +28,15 @@ class FakeEmbedder:
 
 
 class FakeClient:
-    def __init__(self, pieces=("The answer ", "is 42.")):
+    def __init__(self, pieces=("The answer ", "is 42."), rewrite="What are alpha's limits?"):
         self.pieces = pieces
+        self.rewrite = rewrite
         self.calls = []
+        self.rewrites = []
+
+    def chat(self, model, messages, *, options=None, think=None):
+        self.rewrites.append({"model": model, "messages": messages})
+        return {"message": {"content": self.rewrite}}
 
     def chat_stream(self, model, messages, *, options=None, think=None):
         self.calls.append(
@@ -225,6 +231,72 @@ def test_search_returns_chunks_without_calling_the_model(client, kb, runtime):
     assert body["results"][0]["document"] == "alpha.txt"
     assert "Alpha is the first letter." in body["results"][0]["text"]
     assert runtime[0].calls == []
+
+
+def test_title_comes_from_the_first_question_only(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    url = f"/api/conversations/{conversation_id}/messages/"
+    client.post(url, {"question": "What is alpha?", "stream": False}, format="json")
+    client.post(url, {"question": "And beta?", "stream": False}, format="json")
+
+    conversation = Conversation.objects.get(pk=conversation_id)
+    assert conversation.title == "What is alpha?"
+
+
+def test_chat_model_can_be_switched(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    response = client.patch(
+        f"/api/conversations/{conversation_id}/",
+        {"chat_model": "another-model"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["chat_model"] == "another-model"
+
+    client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "stream": False},
+        format="json",
+    )
+    assert runtime[0].calls[-1]["model"] == "another-model"
+
+
+def test_follow_up_is_rewritten_before_search(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    url = f"/api/conversations/{conversation_id}/messages/"
+    client.post(url, {"question": "What is the support email?", "stream": False}, format="json")
+
+    response = client.post(url, {"question": "And what about it?", "stream": False}, format="json")
+
+    assert response.status_code == 200
+    assert response.json()["rewritten"] == "What are alpha's limits?"
+    assert len(runtime[0].rewrites) == 1
+    # The answer still sees the question the user typed.
+    assert runtime[0].calls[-1]["messages"][-1]["content"] == "And what about it?"
+
+
+def test_plain_question_skips_the_rewrite(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    url = f"/api/conversations/{conversation_id}/messages/"
+    client.post(url, {"question": "What is the support email?", "stream": False}, format="json")
+    client.post(
+        url,
+        {"question": "How often does the nightly backup run?", "stream": False},
+        format="json",
+    )
+
+    assert runtime[0].rewrites == []
+
+
+def test_rewrite_shows_up_as_an_sse_event(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    url = f"/api/conversations/{conversation_id}/messages/"
+    client.post(url, {"question": "What is the support email?", "stream": False}, format="json")
+
+    response = client.post(url, {"question": "And what about it?"}, format="json")
+    raw = b"".join(response.streaming_content).decode("utf-8")
+    assert raw.startswith("event: query")
+    assert "And what about it?" in raw
 
 
 def test_delete_conversation_removes_messages(client, kb, settings_row, runtime):

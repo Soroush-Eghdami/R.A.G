@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterator, Literal, Sequence
@@ -10,13 +11,35 @@ from uuid import uuid4
 from .chunking import ChunkConfig, chunk_blocks
 from .embedder import Embedder
 from .loaders import EmptyDocument, load_document
-from .ollama_client import OllamaClient
+from .ollama_client import OllamaClient, OllamaError
 from .prompts import NO_ANSWER, SYSTEM_PROMPT, build_messages
 from .retriever import RetrievalConfig, retrieve
 from .vectorstore import RetrievedChunk, VectorStore
 
 CHARS_PER_TOKEN = 4
-EventType = Literal["sources", "delta", "done"]
+EventType = Literal["query", "sources", "delta", "done"]
+
+# Words that usually point back at something said earlier.
+REFERENCE_WORDS = frozenset(
+    {
+        "it", "its", "it's", "that", "this", "these", "those", "they", "them",
+        "their", "theirs", "he", "she", "him", "her", "his", "hers",
+        "one", "ones", "former", "latter", "above", "same", "previous", "earlier",
+    }
+)
+
+# Questions that start like this rarely stand on their own.
+FOLLOW_UP_STARTS = (
+    "and ", "also ", "but ", "then ", "so ", "what about", "how about",
+    "why", "explain", "elaborate", "tell me more", "more detail", "again",
+    "simplify", "summarize more",
+)
+
+REWRITE_PROMPT = (
+    "Rewrite the user's last message as one standalone search query. "
+    "Use the earlier messages to replace pronouns and vague words. "
+    "Reply with the query only. No quotes, no explanation."
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,11 +75,73 @@ class StreamEvent:
     thinking: bool = False
     sources: tuple[RetrievedChunk, ...] = ()
     model: str = ""
+    # Only set on "query" events: the question the user actually typed.
+    original: str = ""
 
 
 def estimate_tokens(text: str) -> int:
     """Rough token count. Good enough for budgeting."""
     return max(1, len(text) // CHARS_PER_TOKEN)
+
+
+def looks_like_follow_up(question: str) -> bool:
+    """Cheap guess: does this sentence lean on earlier messages?
+
+    Keeps the extra rewrite call off most questions.
+    """
+    text = question.strip().lower()
+    if not text:
+        return False
+    words = re.findall(r"[a-z']+", text)
+    if len(words) <= 3:
+        return True
+    if any(word in REFERENCE_WORDS for word in words):
+        return True
+    return text.startswith(FOLLOW_UP_STARTS)
+
+
+def _tidy_rewrite(text: str, original: str) -> str:
+    """Keep the first line, drop quotes; bail out if it looks wrong."""
+    line = text.strip().splitlines()[0].strip() if text.strip() else ""
+    line = line.strip("\"'` ")
+    if line.lower().startswith("standalone query:"):
+        line = line.split(":", 1)[1].strip()
+    if not line or len(line) > 300:
+        return original
+    return line
+
+
+def rewrite_query(
+    question: str,
+    history: Sequence[dict[str, Any]],
+    *,
+    client: OllamaClient,
+    chat_model: str,
+    num_ctx: int = 8192,
+) -> str:
+    """Turn a follow-up into a standalone query. Falls back to the original."""
+    recent = [f"{m['role']}: {m['content']}" for m in list(history)[-6:]]
+    prompt = (
+        "Recent chat:\n"
+        + "\n".join(recent)
+        + f"\n\nLast message: {question}\n\nStandalone query:"
+    )
+    try:
+        data = client.chat(
+            chat_model,
+            [
+                {"role": "system", "content": REWRITE_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            options={"num_ctx": num_ctx, "temperature": 0.0},
+            think=False,
+        )
+    except OllamaError:
+        # A missing rewrite is not worth failing the whole answer over.
+        return question
+
+    reply = (data.get("message") or {}).get("content") or ""
+    return _tidy_rewrite(reply, question)
 
 
 def ingest_document(
@@ -139,6 +224,7 @@ def answer_stream(
     num_ctx: int = 8192,
     temperature: float = 0.2,
     think: bool | None = False,
+    rewrite_followups: bool = True,
     reserve_output_tokens: int = 1024,
     retrieval: RetrievalConfig | None = None,
 ) -> Iterator[StreamEvent]:
@@ -147,8 +233,22 @@ def answer_stream(
     if not question:
         raise ValueError("question cannot be empty")
 
+    # Follow-ups like "what about its limits?" retrieve badly as written.
+    search_query = question
+    if rewrite_followups and history and looks_like_follow_up(question):
+        search_query = rewrite_query(
+            question,
+            history,
+            client=client,
+            chat_model=chat_model,
+            # Same window as the answer, or Ollama reloads the model twice.
+            num_ctx=num_ctx,
+        )
+        if search_query != question:
+            yield StreamEvent(type="query", text=search_query, original=question)
+
     config = retrieval or RetrievalConfig(top_k=kb.top_k, max_distance=kb.max_distance)
-    found = retrieve(store, embedder, kb.id, question, config)
+    found = retrieve(store, embedder, kb.id, search_query, config)
 
     budget = max(512, num_ctx - reserve_output_tokens)
     fixed = estimate_tokens(SYSTEM_PROMPT) + estimate_tokens(question) + 64

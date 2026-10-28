@@ -145,6 +145,8 @@ DEFAULT_NUM_CTX = env.int("DEFAULT_NUM_CTX", default=8192)
 MAX_UPLOAD_SIZE_MB = env.int("MAX_UPLOAD_SIZE_MB", default=50)
 # Reasoning models can be slow; off by default, toggled per conversation.
 DEFAULT_THINK = env.bool("DEFAULT_THINK", default=False)
+# Rewrite pronoun-heavy follow-ups into a standalone search query first.
+REWRITE_FOLLOWUPS = env.bool("REWRITE_FOLLOWUPS", default=True)
 # Empty means "ask the user"; the UI picks from /api/models/.
 DEFAULT_CHAT_MODEL = env("DEFAULT_CHAT_MODEL", default="")
 # Mark documents stuck in 'processing' as failed on the first request.

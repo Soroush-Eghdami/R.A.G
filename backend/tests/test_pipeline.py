@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import pytest
+from rag.ollama_client import OllamaUnavailable
 from rag.pipeline import (
     KnowledgeBaseConfig,
+    _tidy_rewrite,
     answer_stream,
     collect_answer,
     ingest_document,
+    looks_like_follow_up,
 )
 from rag.prompts import NO_ANSWER
 from rag.vectorstore import VectorStore
@@ -32,9 +35,18 @@ class FakeEmbedder:
 
 
 class FakeClient:
-    def __init__(self, pieces=("The answer is ", "42.")):
+    def __init__(self, pieces=("The answer is ", "42."), rewrite="What is alpha?"):
         self.pieces = pieces
+        self.rewrite = rewrite
         self.calls = []
+        self.rewrites = []
+        self.rewrite_error = None
+
+    def chat(self, model, messages, *, options=None, think=None):
+        self.rewrites.append({"model": model, "messages": messages, "options": options})
+        if self.rewrite_error is not None:
+            raise self.rewrite_error
+        return {"message": {"content": self.rewrite}}
 
     def chat_stream(self, model, messages, *, options=None, think=None):
         self.calls.append(
@@ -191,3 +203,120 @@ def test_blank_question_is_rejected(kb, store):
                 embedder=FakeEmbedder(),
             )
         )
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["Why?", "And the email?", "Explain that more simply", "What about its limits?"],
+)
+def test_follow_ups_are_recognised(question):
+    assert looks_like_follow_up(question) is True
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "What is the support email?",
+        "How often does the nightly backup run?",
+        "Which team launched Project Halcyon?",
+    ],
+)
+def test_standalone_questions_are_not_rewritten(question):
+    assert looks_like_follow_up(question) is False
+
+
+def test_rewrite_emits_a_query_event_first(doc, kb, store):
+    embedder = FakeEmbedder()
+    ingest_document(doc, kb, store=store, embedder=embedder)
+    client = FakeClient(rewrite="What are the limits of alpha?")
+
+    events = list(
+        answer_stream(
+            "what about its limits?",
+            kb,
+            chat_model="fake-chat",
+            client=client,
+            store=store,
+            embedder=embedder,
+            history=[
+                {"role": "user", "content": "Tell me about alpha."},
+                {"role": "assistant", "content": "Alpha is the first letter."},
+            ],
+        )
+    )
+
+    assert events[0].type == "query"
+    assert events[0].text == "What are the limits of alpha?"
+    assert events[0].original == "what about its limits?"
+    assert events[1].type == "sources"
+    assert len(client.rewrites) == 1
+
+
+def test_no_history_means_no_rewrite(doc, kb, store):
+    embedder = FakeEmbedder()
+    ingest_document(doc, kb, store=store, embedder=embedder)
+    client = FakeClient()
+
+    events = list(
+        answer_stream(
+            "what about its limits?",
+            kb,
+            chat_model="fake-chat",
+            client=client,
+            store=store,
+            embedder=embedder,
+        )
+    )
+
+    assert events[0].type == "sources"
+    assert client.rewrites == []
+
+
+def test_failed_rewrite_still_answers(doc, kb, store):
+    embedder = FakeEmbedder()
+    ingest_document(doc, kb, store=store, embedder=embedder)
+    client = FakeClient()
+    client.rewrite_error = OllamaUnavailable("Ollama went away")
+
+    events = list(
+        answer_stream(
+            "what about its limits?",
+            kb,
+            chat_model="fake-chat",
+            client=client,
+            store=store,
+            embedder=embedder,
+            history=[{"role": "user", "content": "Tell me about alpha."}],
+        )
+    )
+
+    assert [event.type for event in events][0] == "sources"
+    assert events[-1].type == "done"
+
+
+def test_rewrite_can_be_switched_off(doc, kb, store):
+    embedder = FakeEmbedder()
+    ingest_document(doc, kb, store=store, embedder=embedder)
+    client = FakeClient()
+
+    list(
+        answer_stream(
+            "what about its limits?",
+            kb,
+            chat_model="fake-chat",
+            client=client,
+            store=store,
+            embedder=embedder,
+            history=[{"role": "user", "content": "Tell me about alpha."}],
+            rewrite_followups=False,
+        )
+    )
+
+    assert client.rewrites == []
+
+
+def test_messy_rewrite_reply_falls_back():
+    assert _tidy_rewrite("Standalone query: alpha limits", "why?") == "alpha limits"
+    assert _tidy_rewrite('"alpha limits"', "why?") == "alpha limits"
+    assert _tidy_rewrite("", "why?") == "why?"
+    assert _tidy_rewrite("x" * 400, "why?") == "why?"
