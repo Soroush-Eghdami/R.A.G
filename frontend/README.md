@@ -1,7 +1,24 @@
 # Frontend
 
-React + Vite + TypeScript app, built in Phase 6.
+React + Vite + TypeScript, Tailwind v4 and TanStack Query.
 
-This directory is intentionally a placeholder for now. The Django API is being
-built and validated first; the frontend will consume the OpenAPI schema at
-`/api/schema/`.
+```powershell
+npm install
+npm run dev      # http://127.0.0.1:5173
+npm run build    # typecheck + production build into dist/
+```
+
+The dev server proxies `/api` to `http://127.0.0.1:8000`, so start Django
+first. No CORS configuration is needed while the proxy is in use.
+
+## Layout
+
+```
+src/api/        typed client, one function per endpoint
+src/components/ layout, dialogs, small UI pieces
+src/pages/      knowledge bases, knowledge base detail, settings
+src/lib/        query hooks and formatting helpers
+```
+
+Every request goes through `src/api/client.ts`. Add new endpoints there rather
+than calling `fetch` from a component.

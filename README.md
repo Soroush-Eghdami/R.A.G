@@ -4,8 +4,8 @@ A local, document-agnostic retrieval-augmented generation app: Django REST
 backend, React frontend, Ollama for models. No accounts, no cloud, no data
 leaving the machine.
 
-> Status: **Phase 0 complete** — Django skeleton, environment configuration and
-> tooling. The RAG engine, API and frontend land in the next phases.
+> Status: **Phase 6 complete** — backend, RAG engine and the browser UI for
+> knowledge bases and settings. Chat UI lands next.
 
 ## Requirements
 
@@ -32,13 +32,25 @@ python backend\manage.py createsuperuser
 python run.py
 ```
 
-Backend: http://127.0.0.1:8000 · Admin: http://127.0.0.1:8000/admin/ ·
+Backend: http://127.0.0.1:8000 - Admin: http://127.0.0.1:8000/admin/ -
 API docs: http://127.0.0.1:8000/api/docs/
+
+Frontend (second terminal):
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+UI: http://127.0.0.1:5173 - it proxies `/api` to Django, so no CORS setup
+is needed in development.
 
 Windows shortcuts:
 
 ```powershell
 .\scripts\dev.ps1
+.\scripts\ui.ps1
 .\scripts\test.ps1
 ```
 
@@ -48,7 +60,7 @@ Windows shortcuts:
 backend/            Django project (config) + apps kb, chat, llm
 backend/rag/        Framework-free RAG engine (no Django imports)
 backend/tests/      pytest suite
-frontend/           React + Vite app (Phase 6)
+frontend/           React + Vite app (chat UI lands in Phase 7)
 data/               SQLite, uploads, Chroma (gitignored)
 scripts/            Windows dev helpers
 ```

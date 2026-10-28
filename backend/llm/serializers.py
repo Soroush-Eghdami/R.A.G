@@ -1,6 +1,9 @@
 """Serializers that document the shape of the ``llm`` endpoints."""
 
+from django.conf import settings
 from rest_framework import serializers
+
+from .models import AppSettings
 
 
 class ModelSerializer(serializers.Serializer):
@@ -44,3 +47,39 @@ class HealthResponseSerializer(serializers.Serializer):
 class ErrorSerializer(serializers.Serializer):
     detail = serializers.CharField()
     code = serializers.CharField()
+
+
+class AppSettingsSerializer(serializers.ModelSerializer):
+    # Deployment config, so it stays read-only here.
+    ollama_base_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AppSettings
+        fields = [
+            "default_chat_model",
+            "default_embedding_model",
+            "top_k",
+            "temperature",
+            "num_ctx",
+            "ollama_base_url",
+            "updated_at",
+        ]
+        read_only_fields = ["ollama_base_url", "updated_at"]
+
+    def get_ollama_base_url(self, obj: AppSettings) -> str:
+        return settings.OLLAMA_BASE_URL
+
+    def validate_top_k(self, value: int) -> int:
+        if not 1 <= value <= 20:
+            raise serializers.ValidationError("Between 1 and 20.")
+        return value
+
+    def validate_temperature(self, value: float) -> float:
+        if not 0 <= value <= 2:
+            raise serializers.ValidationError("Between 0 and 2.")
+        return value
+
+    def validate_num_ctx(self, value: int) -> int:
+        if not 512 <= value <= 131072:
+            raise serializers.ValidationError("Between 512 and 131072.")
+        return value

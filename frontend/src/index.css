@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: #020617;
+  color: #f1f5f9;
+  -webkit-font-smoothing: antialiased;
+}
+
+dialog::backdrop {
+  background: rgb(2 6 23 / 0.75);
+  backdrop-filter: blur(2px);
+}

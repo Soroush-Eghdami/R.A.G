@@ -7,7 +7,6 @@ from django.db import models
 
 
 class AppSettings(models.Model):
-    ollama_base_url = models.CharField(max_length=300, blank=True)
     default_chat_model = models.CharField(max_length=200, blank=True)
     default_embedding_model = models.CharField(max_length=200, blank=True)
     top_k = models.PositiveIntegerField(default=4)
@@ -31,7 +30,6 @@ class AppSettings(models.Model):
         obj, _ = cls.objects.get_or_create(
             pk=1,
             defaults={
-                "ollama_base_url": settings.OLLAMA_BASE_URL,
                 "top_k": settings.DEFAULT_TOP_K,
                 "temperature": settings.DEFAULT_TEMPERATURE,
                 "num_ctx": settings.DEFAULT_NUM_CTX,

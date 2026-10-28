@@ -8,7 +8,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from . import services
-from .serializers import ErrorSerializer, HealthResponseSerializer, ModelsResponseSerializer
+from .models import AppSettings
+from .serializers import (
+    AppSettingsSerializer,
+    ErrorSerializer,
+    HealthResponseSerializer,
+    ModelsResponseSerializer,
+)
 
 
 @extend_schema(
@@ -62,3 +68,22 @@ def models(request: Request) -> Response:
             "base_url": base_url,
         }
     )
+
+
+@extend_schema(
+    tags=["system"],
+    summary="Read or change app defaults",
+    request=AppSettingsSerializer,
+    responses={200: AppSettingsSerializer},
+)
+@api_view(["GET", "PATCH"])
+def app_settings(request: Request) -> Response:
+    """GET returns the defaults; PATCH updates whichever fields you send."""
+    obj = AppSettings.load()
+    if request.method == "GET":
+        return Response(AppSettingsSerializer(obj).data)
+
+    serializer = AppSettingsSerializer(obj, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data)
