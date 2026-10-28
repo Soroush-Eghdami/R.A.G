@@ -10,6 +10,7 @@ import {
 } from "../api/client";
 import type { Document } from "../api/types";
 import { cx, formatBytes, formatDate } from "../lib/format";
+import { FileIcon, TrashIcon, UploadIcon } from "../components/icons";
 import { Badge, Banner, Button, Card, EmptyState, Spinner } from "../components/ui";
 
 const ACCEPTED = [".pdf", ".txt", ".text", ".log", ".md", ".markdown", ".docx"];
@@ -35,7 +36,7 @@ function StatusBadge({ doc }: { doc: Document }) {
 
   return (
     <Badge tone={tone}>
-      {busy ? <Spinner /> : null}
+      {busy ? <Spinner /> : <span className="size-1.5 rounded-full bg-current" />}
       {label}
     </Badge>
   );
@@ -107,7 +108,7 @@ export default function KnowledgeBasePage() {
 
   if (kb.isPending) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-400">
+      <div className="flex items-center gap-2 text-sm text-muted">
         <Spinner /> Loading…
       </div>
     );
@@ -119,7 +120,7 @@ export default function KnowledgeBasePage() {
         <Banner>
           {kb.error instanceof ApiError ? kb.error.message : "That knowledge base is gone."}
         </Banner>
-        <Link to="/kb" className="text-sm text-indigo-300 hover:text-indigo-200">
+        <Link to="/kb" className="text-sm font-medium text-primary hover:text-primary-hover">
           ← Back to knowledge bases
         </Link>
       </div>
@@ -132,24 +133,29 @@ export default function KnowledgeBasePage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/kb" className="text-sm text-slate-400 hover:text-slate-200">
+        <Link
+          to="/kb"
+          className="text-sm text-muted transition hover:text-ink"
+        >
           ← Knowledge bases
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-white">{data.name}</h1>
-            <p className="text-sm text-slate-400">{data.description || "No description"}</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">{data.name}</h1>
+            <p className="mt-1 text-sm text-muted">{data.description || "No description"}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge>{data.document_count} documents</Badge>
+            <Badge>
+              {data.document_count} document{data.document_count === 1 ? "" : "s"}
+            </Badge>
             <Badge tone={data.is_locked ? "info" : "neutral"}>
               {data.is_locked ? "embedding locked" : "embedding editable"}
             </Badge>
           </div>
         </div>
-        <p className="mt-2 text-xs text-slate-500">
-          {data.embedding_model} · {data.chunk_size} chars per chunk,{" "}
-          {data.chunk_overlap} overlap
+        <p className="mt-2 text-xs text-muted">
+          {data.embedding_model} · {data.chunk_size} chars per chunk, {data.chunk_overlap}{" "}
+          overlap
         </p>
       </div>
 
@@ -165,27 +171,33 @@ export default function KnowledgeBasePage() {
           void addFiles(Array.from(event.dataTransfer.files));
         }}
         className={cx(
-          "flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition",
+          "flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition",
           dragging
-            ? "border-indigo-500 bg-indigo-500/10"
-            : "border-slate-800 bg-slate-900/40",
+            ? "border-primary/60 bg-primary/5"
+            : "border-line bg-app/40 hover:border-primary/40",
         )}
       >
-        <p className="text-sm text-slate-300">
+        <span
+          className={cx(
+            "grid size-10 place-items-center rounded-xl transition",
+            dragging ? "bg-primary/15 text-primary" : "bg-elevated text-muted",
+          )}
+        >
+          <UploadIcon className="size-5" />
+        </span>
+        <p className="text-sm text-ink">
           Drop files here, or{" "}
           <button
             type="button"
-            className="font-medium text-indigo-300 underline-offset-2 hover:underline"
+            className="cursor-pointer font-medium text-primary underline-offset-2 hover:underline"
             onClick={() => fileInput.current?.click()}
           >
             browse
           </button>
         </p>
-        <p className="text-xs text-slate-500">
-          PDF, Word, Markdown or plain text · up to 50 MB each
-        </p>
+        <p className="text-xs text-muted">PDF, Word, Markdown or plain text · up to 50 MB each</p>
         {uploading > 0 ? (
-          <p className="flex items-center gap-2 text-xs text-indigo-300">
+          <p className="flex items-center gap-2 text-xs font-medium text-primary">
             <Spinner /> Uploading {uploading} file{uploading === 1 ? "" : "s"}…
           </p>
         ) : null}
@@ -220,6 +232,7 @@ export default function KnowledgeBasePage() {
 
       {documents.isSuccess && list.length === 0 ? (
         <EmptyState
+          icon={<FileIcon className="size-5" />}
           title="No documents yet"
           hint="Upload a PDF, Word file, Markdown or text file to start indexing."
         />
@@ -228,42 +241,52 @@ export default function KnowledgeBasePage() {
       {list.length > 0 ? (
         <Card className="overflow-hidden p-0">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-line bg-app/40 text-[11px] tracking-wide text-muted uppercase">
               <tr>
                 <th className="px-4 py-3 font-medium">File</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Size</th>
                 <th className="px-4 py-3 font-medium">Chunks</th>
                 <th className="px-4 py-3 font-medium">Added</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/70">
+            <tbody className="divide-y divide-line/70">
               {list.map((doc) => (
-                <tr key={doc.id} className="align-top">
+                <tr key={doc.id} className="align-top transition hover:bg-elevated/40">
                   <td className="max-w-xs px-4 py-3">
-                    <p className="truncate text-slate-200" title={doc.original_name}>
-                      {doc.original_name}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {doc.file_type.toUpperCase()}
-                      {doc.page_count ? ` · ${doc.page_count} pages` : ""}
-                    </p>
-                    {doc.status === "failed" && doc.error ? (
-                      <p className="mt-1 rounded bg-red-500/10 px-2 py-1 text-xs text-red-300">
-                        {doc.error}
-                      </p>
-                    ) : null}
+                    <div className="flex items-start gap-2.5">
+                      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-elevated text-muted">
+                        <FileIcon className="size-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p
+                          className="truncate font-medium text-ink"
+                          title={doc.original_name}
+                        >
+                          {doc.original_name}
+                        </p>
+                        <p className="text-xs text-muted">
+                          {doc.file_type.toUpperCase()} · {formatBytes(doc.size_bytes)}
+                          {doc.page_count ? ` · ${doc.page_count} pages` : ""}
+                        </p>
+                        {doc.status === "failed" && doc.error ? (
+                          <p className="mt-1 rounded-lg bg-danger/10 px-2 py-1 text-xs text-danger">
+                            {doc.error}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge doc={doc} />
                   </td>
-                  <td className="px-4 py-3 text-slate-400">{formatBytes(doc.size_bytes)}</td>
-                  <td className="px-4 py-3 text-slate-400">{doc.chunk_count || "—"}</td>
-                  <td className="px-4 py-3 text-slate-400">{formatDate(doc.created_at)}</td>
+                  <td className="px-4 py-3 text-muted">{doc.chunk_count || "—"}</td>
+                  <td className="px-4 py-3 text-muted">{formatDate(doc.created_at)}</td>
                   <td className="px-4 py-3 text-right">
                     <Button
-                      variant="danger"
+                      variant="ghost"
+                      className="px-2 text-muted hover:text-danger"
+                      aria-label={`Delete ${doc.original_name}`}
                       disabled={remove.isPending}
                       onClick={() => {
                         if (window.confirm(`Remove "${doc.original_name}"?`)) {
@@ -271,7 +294,7 @@ export default function KnowledgeBasePage() {
                         }
                       }}
                     >
-                      Delete
+                      <TrashIcon />
                     </Button>
                   </td>
                 </tr>

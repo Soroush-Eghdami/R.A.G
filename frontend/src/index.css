@@ -1,5 +1,57 @@
 @import "tailwindcss";
 
+/* The palette lives in CSS variables, so the toggle only swaps values. */
+@theme inline {
+  --color-app: var(--tone-app);
+  --color-surface: var(--tone-surface);
+  --color-elevated: var(--tone-elevated);
+  --color-line: var(--tone-line);
+  --color-ink: var(--tone-ink);
+  --color-muted: var(--tone-muted);
+  --color-primary: var(--tone-primary);
+  --color-primary-hover: var(--tone-primary-hover);
+  --color-accent: var(--tone-accent);
+  --color-success: var(--tone-success);
+  --color-warning: var(--tone-warning);
+  --color-danger: var(--tone-danger);
+}
+
+/* Light theme (the default until the saved class says otherwise). */
+:root {
+  --tone-app: #f8fafc;
+  --tone-surface: #ffffff;
+  --tone-elevated: #f1f5f9;
+  --tone-line: #e2e8f0;
+  --tone-ink: #0f172a;
+  --tone-muted: #64748b;
+  --tone-primary: #4f46e5;
+  --tone-primary-hover: #6366f1;
+  --tone-accent: #0d9488;
+  --tone-success: #059669;
+  --tone-warning: #b45309;
+  --tone-danger: #dc2626;
+  color-scheme: light;
+}
+
+/* Dark theme, the one we actually live in. */
+.dark {
+  --tone-app: #0b0f19;
+  --tone-surface: #121826;
+  --tone-elevated: #1a2235;
+  --tone-line: #263049;
+  --tone-ink: #e6eaf2;
+  --tone-muted: #8b96ae;
+  --tone-primary: #6366f1;
+  --tone-primary-hover: #818cf8;
+  --tone-accent: #2dd4bf;
+  --tone-success: #34d399;
+  --tone-warning: #fbbf24;
+  --tone-danger: #f87171;
+  color-scheme: dark;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
 html,
 body,
 #root {
@@ -7,12 +59,86 @@ body,
 }
 
 body {
-  background-color: #020617;
-  color: #f1f5f9;
+  background-color: var(--tone-app);
+  color: var(--tone-ink);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--tone-accent) 30%, transparent);
+}
+
+/* Thin, quiet scrollbars that match the theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tone-line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--tone-line);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
 }
 
 dialog::backdrop {
-  background: rgb(2 6 23 / 0.75);
-  backdrop-filter: blur(2px);
+  background: rgb(3 6 15 / 0.6);
+  backdrop-filter: blur(3px);
+}
+
+/* Markdown: the <pre> draws the box, the <code> inside stays plain. */
+.markdown pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.markdown > * + * {
+  margin-top: 0.75rem;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* Two tiny entrance animations, reused around the app. */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 170ms ease-out;
+}
+
+.animate-rise {
+  animation: rise 200ms ease-out;
 }

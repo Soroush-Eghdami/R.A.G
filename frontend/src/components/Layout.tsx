@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { useHealth } from "../lib/hooks";
 import { cx } from "../lib/format";
-import { Badge, Spinner } from "./ui";
+import { useHealth } from "../lib/hooks";
+import { applyTheme, readTheme } from "../lib/theme";
+import { ChatIcon, LibraryIcon, MoonIcon, SlidersIcon, SparkIcon, SunIcon } from "./icons";
+import { Button, Spinner } from "./ui";
 
 function OllamaStatus() {
   const { data, isPending, isError } = useHealth();
 
   if (isPending) {
     return (
-      <div className="flex items-center gap-2 text-xs text-slate-500">
+      <div className="flex items-center gap-2 text-xs text-muted">
         <Spinner /> Checking Ollama…
       </div>
     );
@@ -17,8 +20,11 @@ function OllamaStatus() {
   if (isError || !data) {
     return (
       <div className="space-y-1 text-xs">
-        <Badge tone="bad">Backend offline</Badge>
-        <p className="text-slate-500">Could not reach /api/health.</p>
+        <span className="inline-flex items-center gap-2 text-danger">
+          <span className="size-2 rounded-full bg-danger" />
+          Backend offline
+        </span>
+        <p className="text-muted">Could not reach /api/health.</p>
       </div>
     );
   }
@@ -26,56 +32,101 @@ function OllamaStatus() {
   const online = data.ollama.reachable;
   return (
     <div className="space-y-1.5 text-xs">
-      <Badge tone={online ? "ok" : "bad"}>
+      <span
+        className={cx(
+          "inline-flex items-center gap-2 font-medium",
+          online ? "text-success" : "text-danger",
+        )}
+      >
         <span
           className={cx(
-            "size-1.5 rounded-full",
-            online ? "bg-emerald-400" : "bg-red-400",
+            "size-2 rounded-full",
+            online ? "bg-success shadow-[0_0_0_3px] shadow-success/15" : "bg-danger",
           )}
         />
-        {online ? "Ollama online" : "Ollama offline"}
-      </Badge>
-      <p className="break-all text-slate-500">{data.ollama.base_url}</p>
-      {data.ollama.version ? (
-        <p className="text-slate-600">v{data.ollama.version}</p>
-      ) : null}
+        Ollama {online ? "online" : "offline"}
+      </span>
+      <p className="truncate text-muted" title={data.ollama.base_url}>
+        {data.ollama.base_url}
+      </p>
+      {data.ollama.version ? <p className="text-muted/70">v{data.ollama.version}</p> : null}
     </div>
   );
 }
 
 const navItem = ({ isActive }: { isActive: boolean }) =>
   cx(
-    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
+    "group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition",
     isActive
-      ? "bg-slate-800 text-white"
-      : "text-slate-400 hover:bg-slate-900 hover:text-slate-200",
+      ? "bg-elevated text-ink shadow-sm"
+      : "text-muted hover:bg-elevated/60 hover:text-ink",
   );
 
 export default function Layout() {
+  const [theme, setTheme] = useState(readTheme);
+
   return (
-    <div className="flex min-h-full">
-      <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-slate-800 bg-slate-900/40 p-4">
-        <div className="mb-6 px-2">
-          <p className="text-sm font-semibold tracking-wide text-white">Local RAG</p>
-          <p className="text-xs text-slate-500">Ollama, nothing leaves this box</p>
+    <div className="flex min-h-full bg-app">
+      <aside className="fixed inset-y-0 left-0 flex w-60 flex-col gap-6 border-r border-line bg-surface px-3 py-4">
+        <div className="flex items-center gap-2.5 px-2 pt-1">
+          <span className="grid size-9 place-items-center rounded-xl bg-primary text-white shadow-sm shadow-primary/30">
+            <SparkIcon className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold tracking-tight text-ink">Local RAG</p>
+            <p className="truncate text-[11px] text-muted">Private, on your machine</p>
+          </div>
         </div>
 
         <nav className="flex flex-col gap-1">
+          <NavLink to="/chat" className={navItem}>
+            {({ isActive }) => (
+              <>
+                <ChatIcon className={cx("size-[18px]", isActive && "text-accent")} />
+                Chat
+              </>
+            )}
+          </NavLink>
           <NavLink to="/kb" className={navItem}>
-            Knowledge bases
+            {({ isActive }) => (
+              <>
+                <LibraryIcon className={cx("size-[18px]", isActive && "text-accent")} />
+                Knowledge bases
+              </>
+            )}
           </NavLink>
           <NavLink to="/settings" className={navItem}>
-            Settings
+            {({ isActive }) => (
+              <>
+                <SlidersIcon className={cx("size-[18px]", isActive && "text-accent")} />
+                Settings
+              </>
+            )}
           </NavLink>
         </nav>
 
-        <div className="mt-auto border-t border-slate-800 p-2 pt-4">
-          <OllamaStatus />
+        <div className="mt-auto space-y-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start px-3"
+            onClick={() => {
+              const next = theme === "dark" ? "light" : "dark";
+              setTheme(next);
+              applyTheme(next);
+            }}
+          >
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </Button>
+
+          <div className="rounded-xl border border-line bg-app/60 p-3">
+            <OllamaStatus />
+          </div>
         </div>
       </aside>
 
-      <main className="ml-60 flex-1 px-8 py-8">
-        <div className="mx-auto max-w-5xl">
+      <main className="ml-60 flex-1 px-8 py-7">
+        <div className="mx-auto w-full max-w-6xl">
           <Outlet />
         </div>
       </main>

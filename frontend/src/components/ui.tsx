@@ -5,12 +5,11 @@ type Variant = "primary" | "subtle" | "danger" | "ghost";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-indigo-500 text-white hover:bg-indigo-400 disabled:bg-indigo-500/40 disabled:text-white/60",
-  subtle:
-    "bg-slate-800 text-slate-100 hover:bg-slate-700 disabled:text-slate-500",
+    "bg-primary text-white shadow-sm shadow-primary/25 hover:bg-primary-hover disabled:bg-primary/40 disabled:shadow-none",
+  subtle: "bg-elevated text-ink hover:bg-line disabled:text-muted",
   danger:
-    "bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-500/30 hover:bg-red-500/25",
-  ghost: "text-slate-300 hover:bg-slate-800/70 hover:text-white",
+    "bg-danger/10 text-danger ring-1 ring-inset ring-danger/25 hover:bg-danger/15 disabled:opacity-50",
+  ghost: "text-muted hover:bg-elevated hover:text-ink",
 };
 
 export function Button({
@@ -21,7 +20,9 @@ export function Button({
   return (
     <button
       className={cx(
-        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed",
+        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        "disabled:cursor-not-allowed",
         variants[variant],
         className,
       )}
@@ -40,7 +41,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm",
+        "rounded-2xl border border-line bg-surface p-5 shadow-sm",
         className,
       )}
     >
@@ -64,11 +65,11 @@ export function Spinner({ className }: { className?: string }) {
 type Tone = "neutral" | "ok" | "warn" | "bad" | "info";
 
 const tones: Record<Tone, string> = {
-  neutral: "bg-slate-800 text-slate-300 ring-slate-700",
-  ok: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
-  warn: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-  bad: "bg-red-500/15 text-red-300 ring-red-500/30",
-  info: "bg-indigo-500/15 text-indigo-300 ring-indigo-500/30",
+  neutral: "bg-elevated text-muted ring-line",
+  ok: "bg-success/10 text-success ring-success/25",
+  warn: "bg-warning/10 text-warning ring-warning/25",
+  bad: "bg-danger/10 text-danger ring-danger/25",
+  info: "bg-accent/10 text-accent ring-accent/25",
 };
 
 export function Badge({
@@ -101,31 +102,38 @@ export function Banner({
   children: ReactNode;
 }) {
   const styles = {
-    bad: "border-red-500/30 bg-red-500/10 text-red-200",
-    warn: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-    ok: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    bad: "border-danger/25 bg-danger/10 text-danger",
+    warn: "border-warning/25 bg-warning/10 text-warning",
+    ok: "border-success/25 bg-success/10 text-success",
   };
   return (
-    <div className={cx("rounded-lg border px-4 py-3 text-sm", styles[tone])}>
+    <div className={cx("rounded-xl border px-4 py-3 text-sm", styles[tone])}>
       {children}
     </div>
   );
 }
 
 export function EmptyState({
+  icon,
   title,
   hint,
   action,
 }: {
+  icon?: ReactNode;
   title: string;
   hint?: ReactNode;
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-800 px-6 py-16 text-center">
-      <p className="text-base font-medium text-slate-200">{title}</p>
-      {hint ? <p className="max-w-md text-sm text-slate-400">{hint}</p> : null}
-      {action}
+    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line bg-surface/40 px-6 py-16 text-center">
+      {icon ? (
+        <div className="grid size-11 place-items-center rounded-xl bg-elevated text-muted">
+          {icon}
+        </div>
+      ) : null}
+      <p className="text-base font-medium text-ink">{title}</p>
+      {hint ? <p className="max-w-md text-sm text-muted">{hint}</p> : null}
+      {action ? <div className="pt-1">{action}</div> : null}
     </div>
   );
 }
@@ -141,12 +149,32 @@ export function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-slate-300">{label}</span>
+      <span className="text-sm font-medium text-ink">{label}</span>
       {children}
-      {hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
+      {hint ? <span className="text-xs text-muted">{hint}</span> : null}
     </label>
   );
 }
 
+export function PageHeader({
+  title,
+  subtitle,
+  actions,
+}: {
+  title: string;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+        {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
+      </div>
+      {actions}
+    </header>
+  );
+}
+
 export const inputClass =
-  "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
+  "w-full rounded-xl border border-line bg-elevated px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted/70 focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60";

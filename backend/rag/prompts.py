@@ -9,7 +9,9 @@ from .vectorstore import RetrievedChunk
 SYSTEM_PROMPT = (
     "You are a helpful assistant that answers questions using ONLY the context below.\n"
     "If the context does not contain the answer, say you don't know. Do not invent facts.\n"
-    "Cite the sources you use like [1], [2] matching the numbered context blocks."
+    "Cite the context blocks you use inline like [1], [2].\n"
+    "Do not add a source list, summary of the sources, or a 'Sources:' section at the end.\n"
+    "Keep the answer short and to the point."
 )
 
 NO_ANSWER = "I couldn't find that in your documents."

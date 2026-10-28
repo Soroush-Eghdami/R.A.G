@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, createKnowledgeBase, getSettings } from "../api/client";
 import { useModels } from "../lib/hooks";
+import { CloseIcon, PlusIcon } from "./icons";
 import { Banner, Button, Field, Spinner, inputClass } from "./ui";
 
 type Props = { open: boolean; onClose: () => void };
@@ -43,7 +44,8 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
       setError(null);
       onClose();
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : "Something went wrong."),
+    onError: (err) =>
+      setError(err instanceof ApiError ? err.message : "Something went wrong."),
   });
 
   const close = () => {
@@ -56,10 +58,10 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
       ref={dialogRef}
       onClose={close}
       onCancel={close}
-      className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-0 text-slate-100 backdrop:bg-slate-950/70"
+      className="w-full max-w-lg rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl"
     >
       <form
-        className="space-y-4 p-6"
+        className="space-y-5 p-6"
         onSubmit={(event) => {
           event.preventDefault();
           if (!model) {
@@ -69,11 +71,18 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
           create.mutate();
         }}
       >
-        <div>
-          <h2 className="text-lg font-semibold">New knowledge base</h2>
-          <p className="text-sm text-slate-400">
-            One collection of documents you can ask questions about.
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-ink">
+              New knowledge base
+            </h2>
+            <p className="text-sm text-muted">
+              One collection of documents you can ask questions about.
+            </p>
+          </div>
+          <Button type="button" variant="ghost" className="px-2" onClick={close} aria-label="Close">
+            <CloseIcon />
+          </Button>
         </div>
 
         {error ? <Banner>{error}</Banner> : null}
@@ -81,7 +90,10 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
         {models.isError ? (
           <Banner tone="warn">
             Can't list embedding models. Is Ollama running? Pull one with{" "}
-            <code className="rounded bg-slate-800 px-1">ollama pull nomic-embed-text</code>.
+            <code className="rounded bg-app px-1.5 py-0.5 font-mono text-xs">
+              ollama pull nomic-embed-text
+            </code>
+            .
           </Banner>
         ) : null}
 
@@ -117,7 +129,9 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
             onChange={(event) => setModel(event.target.value)}
             disabled={models.isPending || embeddingModels.length === 0}
           >
-            {embeddingModels.length === 0 ? <option value="">No embedding models</option> : null}
+            {embeddingModels.length === 0 ? (
+              <option value="">No embedding models</option>
+            ) : null}
             {embeddingModels.map((item) => (
               <option key={item.name} value={item.name}>
                 {item.name}
@@ -127,12 +141,12 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
           </select>
         </Field>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button type="button" variant="ghost" onClick={close}>
             Cancel
           </Button>
           <Button type="submit" variant="primary" disabled={create.isPending || !name.trim()}>
-            {create.isPending ? <Spinner /> : null}
+            {create.isPending ? <Spinner /> : <PlusIcon />}
             Create
           </Button>
         </div>

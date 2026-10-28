@@ -151,7 +151,7 @@ export const updateConversation = (id: string, patch: Record<string, unknown>) =
 export const deleteConversation = (id: string) =>
   request<void>(`/conversations/${id}/`, { method: "DELETE" });
 
-/** Non-streaming answer. The streaming version lands in the chat phase. */
+/** Non-streaming answer, handy for scripts and tests. */
 export const ask = (conversationId: string, question: string) =>
   request<{ message: Message; sources: Source[]; rewritten: string | null }>(
     `/conversations/${conversationId}/messages/`,
@@ -160,3 +160,107 @@ export const ask = (conversationId: string, question: string) =>
       body: JSON.stringify({ question, stream: false }),
     },
   );
+
+/* ---------------------------------------------------------------- streaming */
+
+export type StreamEvent =
+  | { type: "query"; original: string; query: string }
+  | { type: "sources"; sources: Source[] }
+  | { type: "token"; text: string }
+  | { type: "done"; messageId: number | null }
+  | { type: "error"; detail: string; code: string };
+
+/** One SSE block: 'event: token' plus one or more 'data:' lines. */
+function parseEvent(block: string): StreamEvent | null {
+  let name = "";
+  const data: string[] = [];
+  for (const line of block.split("\n")) {
+    if (line.startsWith("event: ")) {
+      name = line.slice(7).trim();
+    } else if (line.startsWith("data: ")) {
+      data.push(line.slice(6));
+    }
+  }
+  if (!name) return null;
+
+  const raw = data.join("\n");
+  if (!raw) return null;
+  const payload = JSON.parse(raw) as Record<string, unknown>;
+
+  switch (name) {
+    case "query":
+      return {
+        type: "query",
+        original: String(payload.original ?? ""),
+        query: String(payload.query ?? ""),
+      };
+    case "sources":
+      return { type: "sources", sources: payload as unknown as Source[] };
+    case "token":
+      return { type: "token", text: String(payload.text ?? "") };
+    case "done":
+      return {
+        type: "done",
+        messageId: typeof payload.message_id === "number" ? payload.message_id : null,
+      };
+    case "error":
+      return {
+        type: "error",
+        detail: String(payload.detail ?? "Something went wrong."),
+        code: String(payload.code ?? "unknown"),
+      };
+    default:
+      return null;
+  }
+}
+
+type StreamHandlers = {
+  onEvent: (event: StreamEvent) => void;
+  signal?: AbortSignal;
+};
+
+/** Ask a question and feed events to the caller as they arrive. */
+export async function streamAnswer(
+  conversationId: string,
+  question: string,
+  { onEvent, signal }: StreamHandlers,
+): Promise<void> {
+  const response = await fetch(`${BASE}/conversations/${conversationId}/messages/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+    signal,
+  });
+
+  if (!response.ok || !response.body) {
+    let body: unknown = null;
+    try {
+      body = await response.json();
+    } catch {
+      // Keep the generic message.
+    }
+    throw new ApiError(
+      describe(body, `Request failed (${response.status}).`),
+      response.status,
+    );
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let split = buffer.indexOf("\n\n");
+    while (split !== -1) {
+      const block = buffer.slice(0, split);
+      buffer = buffer.slice(split + 2);
+      const event = parseEvent(block);
+      if (event) onEvent(event);
+      split = buffer.indexOf("\n\n");
+    }
+  }
+}
