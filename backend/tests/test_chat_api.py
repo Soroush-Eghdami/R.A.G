@@ -1,0 +1,238 @@
+"""Chat API tests: JSON answers, SSE stream, search."""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+from chat import services as chat_services
+from chat.models import Conversation, Message
+from kb import services as kb_services
+from kb.models import KnowledgeBase
+from llm.models import AppSettings
+from rag.chunking import Chunk
+from rag.ollama_client import OllamaUnavailable
+from rag.vectorstore import VectorStore
+
+pytestmark = pytest.mark.django_db
+
+
+class FakeEmbedder:
+    model = "fake-embed"
+
+    def embed_documents(self, texts):
+        return [[1.0, 0.0, 0.0] for _ in texts]
+
+    def embed_query(self, text):
+        return [1.0, 0.0, 0.0]
+
+
+class FakeClient:
+    def __init__(self, pieces=("The answer ", "is 42.")):
+        self.pieces = pieces
+        self.calls = []
+
+    def chat_stream(self, model, messages, *, options=None, think=None):
+        self.calls.append(
+            {"model": model, "messages": messages, "options": options, "think": think}
+        )
+        for piece in self.pieces:
+            yield {"message": {"content": piece}}
+        yield {"done": True}
+
+
+class FailingClient(FakeClient):
+    def chat_stream(self, model, messages, *, options=None, think=None):
+        yield {"message": {"content": "half an ans"}}
+        raise OllamaUnavailable("Ollama stopped responding.")
+
+
+@pytest.fixture(autouse=True)
+def media(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path / "media"
+    settings.CHROMA_DIR = tmp_path / "chroma"
+
+
+@pytest.fixture
+def kb(db):
+    return KnowledgeBase.objects.create(name="Chat KB", embedding_model="fake-embed")
+
+
+@pytest.fixture
+def settings_row(db):
+    return AppSettings.objects.create(
+        default_chat_model="fake-chat",
+        top_k=3,
+        num_ctx=4096,
+        temperature=0.1,
+    )
+
+
+@pytest.fixture
+def runtime(settings, kb, monkeypatch):
+    store = VectorStore(settings.CHROMA_DIR)
+    store.add_chunks(
+        str(kb.id),
+        "doc-1",
+        [Chunk(text="Alpha is the first letter.", index=0)],
+        [[1.0, 0.0, 0.0]],
+        document_name="alpha.txt",
+    )
+    client = FakeClient()
+    embedder = FakeEmbedder()
+    monkeypatch.setattr(
+        chat_services,
+        "build_runtime",
+        lambda knowledge_base: (client, store, embedder),
+    )
+    # The search endpoint builds its own store/embedder.
+    monkeypatch.setattr(kb_services, "build_store", lambda: store)
+    monkeypatch.setattr(kb_services, "build_embedder", lambda model: embedder)
+    return client, store, embedder
+
+
+def make_conversation(client, kb, **extra):
+    payload = {"knowledge_base": str(kb.id), "chat_model": "fake-chat", **extra}
+    return client.post("/api/conversations/", payload, format="json")
+
+
+def test_conversation_uses_default_chat_model(client, kb, settings_row):
+    response = client.post(
+        "/api/conversations/",
+        {"knowledge_base": str(kb.id)},
+        format="json",
+    )
+    assert response.status_code == 201
+    assert response.json()["chat_model"] == "fake-chat"
+
+
+def test_conversation_requires_a_chat_model(client, kb):
+    response = client.post(
+        "/api/conversations/",
+        {"knowledge_base": str(kb.id)},
+        format="json",
+    )
+    assert response.status_code == 400
+
+
+def test_json_answer_is_saved(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    response = client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "stream": False},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["message"]["content"] == "The answer is 42."
+    assert body["sources"][0]["document"] == "alpha.txt"
+
+    conversation = Conversation.objects.get(pk=conversation_id)
+    assert conversation.title == "What is alpha?"
+    assert list(conversation.messages.values_list("role", flat=True)) == [
+        Message.Role.USER,
+        Message.Role.ASSISTANT,
+    ]
+
+
+def test_sse_stream_order_and_persistence(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    response = client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?"},
+        format="json",
+    )
+
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert response["Cache-Control"] == "no-cache"
+
+    raw = b"".join(response.streaming_content).decode("utf-8")
+    events = [
+        block.split("\n", 1)
+        for block in raw.strip().split("\n\n")
+    ]
+    names = [line[0].removeprefix("event: ") for line in events]
+    assert names == ["sources", "token", "token", "done"]
+
+    tokens = "".join(
+        json.loads(line[1].removeprefix("data: "))["text"]
+        for name, line in zip(names, events)
+        if name == "token"
+    )
+    assert tokens == "The answer is 42."
+
+    saved = Message.objects.get(conversation_id=conversation_id, role=Message.Role.ASSISTANT)
+    assert saved.content == "The answer is 42."
+    assert saved.sources[0]["document"] == "alpha.txt"
+
+
+def test_stream_error_event_keeps_partial_answer(client, kb, settings_row, runtime, monkeypatch):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    failing = FailingClient()
+    monkeypatch.setattr(
+        chat_services,
+        "build_runtime",
+        lambda knowledge_base: (failing, runtime[1], runtime[2]),
+    )
+
+    response = client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?"},
+        format="json",
+    )
+    raw = b"".join(response.streaming_content).decode("utf-8")
+    assert "event: error" in raw
+    assert "ollama_unavailable" in raw
+
+    saved = Message.objects.get(conversation_id=conversation_id, role=Message.Role.ASSISTANT)
+    assert saved.content == "half an ans"
+
+
+def test_history_is_sent_to_the_model(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    url = f"/api/conversations/{conversation_id}/messages/"
+    client.post(url, {"question": "First?", "stream": False}, format="json")
+    client.post(url, {"question": "Second?", "stream": False}, format="json")
+
+    last_messages = runtime[0].calls[-1]["messages"]
+    contents = [message["content"] for message in last_messages]
+    assert any("First?" in content for content in contents)
+    assert any("The answer is 42." in content for content in contents)
+
+
+def test_options_come_from_settings_row(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "stream": False},
+        format="json",
+    )
+    call = runtime[0].calls[-1]
+    assert call["options"]["num_ctx"] == 4096
+    assert call["options"]["temperature"] == 0.1
+    assert call["think"] is False
+
+
+def test_search_returns_chunks_without_calling_the_model(client, kb, runtime):
+    response = client.post(
+        f"/api/knowledge-bases/{kb.id}/search/",
+        {"question": "What is alpha?", "top_k": 2},
+        format="json",
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"][0]["document"] == "alpha.txt"
+    assert "Alpha is the first letter." in body["results"][0]["text"]
+    assert runtime[0].calls == []
+
+
+def test_delete_conversation_removes_messages(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "stream": False},
+        format="json",
+    )
+    assert client.delete(f"/api/conversations/{conversation_id}/").status_code == 204
+    assert not Message.objects.filter(conversation_id=conversation_id).exists()

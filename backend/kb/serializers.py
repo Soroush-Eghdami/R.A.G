@@ -104,6 +104,16 @@ class DocumentSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(obj.file.url)
 
 
+class SearchSerializer(serializers.Serializer):
+    question = serializers.CharField(max_length=8000, trim_whitespace=True)
+    top_k = serializers.IntegerField(min_value=1, max_value=20, required=False)
+
+    def validate_question(self, value: str) -> str:
+        if not value.strip():
+            raise serializers.ValidationError("Ask something first.")
+        return value
+
+
 class DocumentUploadSerializer(serializers.Serializer):
     knowledge_base = serializers.PrimaryKeyRelatedField(
         queryset=KnowledgeBase.objects.all()

@@ -5,7 +5,10 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from rag.ollama_client import OllamaError
+from rag.retriever import RetrievalConfig, retrieve
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
@@ -15,6 +18,7 @@ from .serializers import (
     DocumentSerializer,
     DocumentUploadSerializer,
     KnowledgeBaseSerializer,
+    SearchSerializer,
 )
 from .tasks import enqueue_ingestion
 
@@ -31,6 +35,32 @@ def sha256_of(upload) -> str:
 class KnowledgeBaseViewSet(viewsets.ModelViewSet):
     queryset = KnowledgeBase.objects.all()
     serializer_class = KnowledgeBaseSerializer
+
+    @action(detail=True, methods=["post"])
+    def search(self, request, pk=None):
+        """Retrieval only, no model call. Handy for tuning."""
+        from chat.services import search_payload
+
+        knowledge_base = self.get_object()
+        serializer = SearchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            chunks = retrieve(
+                services.build_store(),
+                services.build_embedder(knowledge_base.embedding_model),
+                str(knowledge_base.id),
+                data["question"],
+                RetrievalConfig(top_k=data.get("top_k", 5)),
+            )
+        except OllamaError as exc:
+            return Response(
+                {"detail": str(exc), "code": exc.code},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response({"query": data["question"], "results": search_payload(chunks)})
 
     def perform_destroy(self, instance: KnowledgeBase) -> None:
         services.build_store().drop(str(instance.id))
