@@ -167,6 +167,7 @@ export type StreamEvent =
   | { type: "query"; original: string; query: string }
   | { type: "sources"; sources: Source[] }
   | { type: "token"; text: string }
+  | { type: "thinking"; text: string }
   | { type: "done"; messageId: number | null }
   | { type: "error"; detail: string; code: string };
 
@@ -198,6 +199,8 @@ function parseEvent(block: string): StreamEvent | null {
       return { type: "sources", sources: payload as unknown as Source[] };
     case "token":
       return { type: "token", text: String(payload.text ?? "") };
+    case "thinking":
+      return { type: "thinking", text: String(payload.text ?? "") };
     case "done":
       return {
         type: "done",
@@ -223,12 +226,12 @@ type StreamHandlers = {
 export async function streamAnswer(
   conversationId: string,
   question: string,
-  { onEvent, signal }: StreamHandlers,
+  { onEvent, signal, think = false }: StreamHandlers & { think?: boolean },
 ): Promise<void> {
   const response = await fetch(`${BASE}/conversations/${conversationId}/messages/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, think }),
     signal,
   });
 

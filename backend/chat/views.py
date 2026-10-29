@@ -144,7 +144,9 @@ class ConversationViewSet(viewsets.ModelViewSet):
                     elif event.type == "sources":
                         sources = services.sources_payload(event.sources)
                         yield sse("sources", sources)
-                    elif event.type == "delta" and not event.thinking:
+                    elif event.type == "delta" and event.thinking:
+                        yield sse("thinking", {"text": event.text})
+                    elif event.type == "delta":
                         parts.append(event.text)
                         yield sse("token", {"text": event.text})
                     elif event.type == "done":

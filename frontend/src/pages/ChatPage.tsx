@@ -28,7 +28,26 @@ import {
 } from "../components/icons";
 import { Badge, Banner, Button, EmptyState, Spinner } from "../components/ui";
 
-type Draft = { text: string; sources: Source[]; rewritten: string | null };
+function ThinkingBlock({ thinking }: { thinking: string }) {
+  return (
+    <details className="group border border-line/50 rounded-xl bg-app/50 overflow-hidden">
+      <summary className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted cursor-pointer list-none transition hover:text-ink">
+        <span className="grid size-5 place-items-center rounded-lg bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
+          <SparkIcon className="size-3" />
+        </span>
+        <span>Thinking</span>
+        <span className="ml-auto size-4 text-muted transition group-open:rotate-180">
+          <SparkIcon className="size-3" />
+        </span>
+      </summary>
+      <div className="px-4 pb-3 pt-0 text-xs font-mono text-muted/80 leading-relaxed whitespace-pre-wrap">
+        {thinking}
+      </div>
+    </details>
+  );
+}
+
+type Draft = { text: string; sources: Source[]; rewritten: string | null; thinking: string };
 
 const KB_KEY = "rag.kb";
 const MODEL_KEY = "rag.model";
@@ -68,6 +87,7 @@ export default function ChatPage() {
   const [citations, setCitations] = useState<{ sources: Source[]; active: number } | null>(
     null,
   );
+  const [think, setThink] = useState(() => recall("rag.think") === "true");
 
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -191,12 +211,13 @@ export default function ChatPage() {
         created_at: new Date().toISOString(),
       },
     ]);
-    setStream({ text: "", sources: [], rewritten: null });
+    setStream({ text: "", sources: [], rewritten: null, thinking: "" });
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     let text = "";
+    let thinking = "";
     let sources: Source[] = [];
     let rewritten: string | null = null;
     let failed: string | null = null;
@@ -204,6 +225,7 @@ export default function ChatPage() {
     try {
       await streamAnswer(id, question, {
         signal: controller.signal,
+        think,
         onEvent: (event) => {
           if (event.type === "query") {
             rewritten = event.query;
@@ -214,6 +236,9 @@ export default function ChatPage() {
           } else if (event.type === "token") {
             text += event.text;
             setStream((current) => (current ? { ...current, text } : current));
+          } else if (event.type === "thinking") {
+            thinking += event.text;
+            setStream((current) => (current ? { ...current, thinking } : current));
           } else if (event.type === "error") {
             failed = event.detail;
           }
@@ -363,6 +388,19 @@ export default function ChatPage() {
 
           <div className="flex shrink-0 items-center gap-2">
             <div className="lg:hidden">{kbPicker("max-w-40")}</div>
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted hover:text-ink" title="Enable reasoning mode">
+              <input
+                type="checkbox"
+                checked={think}
+                onChange={(event) => {
+                  setThink(event.target.checked);
+                  localStorage.setItem("rag.think", String(event.target.checked));
+                }}
+                className="size-4 accent-primary"
+              />
+              <SparkIcon className="size-3.5" />
+              <span>Think</span>
+            </label>
             <select
               className="max-w-56 cursor-pointer rounded-lg border border-line bg-elevated px-2.5 py-2 text-xs font-medium text-ink outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
               value={model}
@@ -437,6 +475,10 @@ export default function ChatPage() {
                   <p className="text-[11px] text-muted">
                     searched for <span className="text-accent">{stream.rewritten}</span>
                   </p>
+                ) : null}
+
+                {stream.thinking ? (
+                  <ThinkingBlock thinking={stream.thinking} />
                 ) : null}
 
                 {stream.text ? (
