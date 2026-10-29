@@ -88,19 +88,6 @@ cd frontend
 npm run test
 ```
 
-## Phases
-
-Built and shipped in order:
-
-1. **Phase 0–4** — Backend skeleton, RAG engine, ask/stream API
-2. **Phase 5** — Follow-up rewriting, auto-titles, per-conversation models
-3. **Phase 6** — Frontend for knowledge bases and settings
-4. **Phase 7** — Streaming chat UI with citations, dark/light mode
-5. **Phase 8** — Hardening and tests
-6. **Phase 9** — Packaging, Docker, docs, CI
-
-Tag `v2.0.0` marks the first complete release.
-
 ## Requirements
 
 - Python 3.13
