@@ -194,3 +194,74 @@ def test_recovery_marks_stuck_documents_failed(db):
     document.refresh_from_db()
     assert document.status == Document.Status.FAILED
     assert "restarted" in document.error
+
+
+def test_empty_pdf_marks_failed(client, kb, store, monkeypatch):
+    """PDF with no extractable text gets friendly failure."""
+    document_id = upload(client, kb, name="empty.pdf", content=b"%PDF-1.4\n%%EOF\n").json()["id"]
+
+    from rag.loaders import EmptyDocument
+
+    def empty_ingest(document):
+        raise EmptyDocument("empty.pdf contains no text.")
+
+    monkeypatch.setattr(kb_services, "ingest", empty_ingest)
+    run_ingestion(document_id)
+
+    document = Document.objects.get(pk=document_id)
+    assert document.status == Document.Status.FAILED
+    assert document.error
+
+
+def test_scanned_pdf_marks_failed(client, kb, store, monkeypatch):
+    """Scanned PDF with no text gets friendly failure."""
+    document_id = upload(
+        client, kb, name="scan.pdf", content=b"%PDF-1.4 fake scan %%EOF\n"
+    ).json()["id"]
+
+    from rag.loaders import EmptyDocument
+
+    def scan_ingest(document):
+        raise EmptyDocument("scan.pdf contains no text.")
+
+    monkeypatch.setattr(kb_services, "ingest", scan_ingest)
+    run_ingestion(document_id)
+
+    document = Document.objects.get(pk=document_id)
+    assert document.status == Document.Status.FAILED
+    assert document.error
+
+
+def test_ollama_dies_mid_ingestion_marks_failed(client, kb, store, monkeypatch):
+    """If Ollama becomes unavailable during ingestion, document is marked failed."""
+    document_id = upload(client, kb).json()["id"]
+
+    from rag.ollama_client import OllamaUnavailable
+
+    def boom(document):
+        raise OllamaUnavailable("Ollama connection lost")
+
+    monkeypatch.setattr(kb_services, "ingest", boom)
+    run_ingestion(document_id)
+
+    document = Document.objects.get(pk=document_id)
+    assert document.status == Document.Status.FAILED
+    assert document.error
+
+
+def test_delete_kb_during_ingestion_cleans_up(client, kb, store, monkeypatch):
+    """Deleting KB while ingestion is running cleans up vectors and marks docs failed."""
+    document_id = upload(client, kb).json()["id"]
+    document = Document.objects.get(pk=document_id)
+    document.status = Document.Status.PROCESSING
+    document.save()
+
+    # Delete the KB (cascades to documents)
+    resp = client.delete(f"/api/knowledge-bases/{kb.id}/")
+    assert resp.status_code == 204
+
+    # KB and document should be gone
+    assert not KnowledgeBase.objects.filter(pk=kb.id).exists()
+    assert not Document.objects.filter(pk=document_id).exists()
+    # Vector collection should be dropped
+    assert store.count(str(kb.id)) == 0

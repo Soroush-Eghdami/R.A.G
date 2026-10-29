@@ -308,3 +308,48 @@ def test_delete_conversation_removes_messages(client, kb, settings_row, runtime)
     )
     assert client.delete(f"/api/conversations/{conversation_id}/").status_code == 204
     assert not Message.objects.filter(conversation_id=conversation_id).exists()
+
+
+class ThinkingClient(FakeClient):
+    """Streams thinking pieces before the answer."""
+
+    def chat_stream(self, model, messages, *, options=None, think=None):
+        self.calls.append(
+            {"model": model, "messages": messages, "options": options, "think": think}
+        )
+        yield {"message": {"thinking": "let me think"}}
+        yield {"message": {"content": "The answer ", "thinking": " step 1"}}
+        yield {"message": {"content": "is 42."}}
+        yield {"done": True}
+
+
+def test_thinking_events_appear_in_sse(client, kb, settings_row, runtime, monkeypatch):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    thinking = ThinkingClient()
+    monkeypatch.setattr(
+        chat_services,
+        "build_runtime",
+        lambda knowledge_base: (thinking, runtime[1], runtime[2]),
+    )
+
+    response = client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "think": True},
+        format="json",
+    )
+    raw = b"".join(response.streaming_content).decode("utf-8")
+
+    assert "event: thinking" in raw
+    assert "let me think" in raw
+    assert "event: token" in raw
+
+    token_texts = []
+    for block in raw.strip().split("\n\n"):
+        lines = block.split("\n", 1)
+        if lines[0] == "event: token":
+            data = lines[1].removeprefix("data: ")
+            token_texts.append(json.loads(data)["text"])
+    assert "".join(token_texts) == "The answer is 42."
+
+    saved = Message.objects.get(conversation_id=conversation_id, role=Message.Role.ASSISTANT)
+    assert saved.content == "The answer is 42."

@@ -172,7 +172,7 @@ export type StreamEvent =
   | { type: "error"; detail: string; code: string };
 
 /** One SSE block: 'event: token' plus one or more 'data:' lines. */
-function parseEvent(block: string): StreamEvent | null {
+export function parseEvent(block: string): StreamEvent | null {
   let name = "";
   const data: string[] = [];
   for (const line of block.split("\n")) {
