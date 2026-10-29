@@ -22,10 +22,10 @@
                                                           ┌─────────────────────┐
                                                           │      Ollama         │
                                                           │  chat + embeddings  │
-                                                          │  qwen3.5:9b         │
-                                                          │  nomic-embed-text   │
-                                                          │  embeddinggemma     │
-                                                          │  all-minilm         │
+                                                          │ any chat model     │
+                                                          │ any embedding model │
+                                                          │ (user picks)       │
+                                                          │ from Ollama        |
                                                           └─────────────────────┘
 ```
 

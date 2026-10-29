@@ -11,25 +11,31 @@ leaves your box.
 │   React UI  │  <================>   Django REST backend   │
 │  (port 5173)│                   │   (port 8000)           │
 └─────────────┘                   └─────────────────────────┘
-                                               │
-                                          Ollama HTTP API
-                                               │
-                                               ▼
-                                        ┌───────────┐
-                                        | Ollama    |
-                                        | qwen3.5:9b|
-                                        | nomic-emb |
-                                        └───────────┘
+                                                │
+                                           Ollama HTTP API
+                                                │
+                                                ▼
+                                         ┌───────────┐
+                                         | Ollama    |
+                                         | any chat  |
+                                         | any embed |
+                                         └───────────┘
 ```
 
 ## What it does
 
-- **Upload** PDFs, Word docs, Markdown, or text to a knowledge base
-- **Ask** questions about your documents — answers cite the exact passages used
-- **Stream** answers token-by-token with citations and a source drawer
-- **Switch** chat models per conversation; follow-ups are rewritten so
-  pronoun-heavy questions still retrieve the right chunks
-- **Theme** dark/light toggle; settings for top-k, temperature, context window
+- **Upload** PDFs, Word docs, Markdown, or plain text to a knowledge base.
+  Files are hashed (sha256) so you never upload the same document twice.
+- **Ask** questions about your documents. Answers cite the exact passages they
+  used, inline like [1], [2].
+- **Stream** answers token-by-token as they're generated, with a source drawer
+  that shows file, page, and a match score for each citation.
+- **Switch** chat models per conversation from the model dropdown — anything
+  installed in Ollama shows up automatically.
+- **Follow-up questions** are rewritten into standalone queries before
+  retrieval, so "explain that more simply" still finds the right chunks.
+- **Dark/light theme** toggle, persisted to your browser.
+- **Settings** for default top-k, temperature, and context window.
 
 ## Stack
 
@@ -37,7 +43,7 @@ leaves your box.
 |-------|------|
 | Backend | Django 5.2 + Django REST Framework |
 | RAG engine | Framework-free `rag/` package (no Django imports) |
-| LLM / Embeddings | Ollama (qwen3.5:9b, nomic-embed-text, …) |
+| LLM / Embeddings | Ollama — you pick the chat and embedding models |
 | Vector store | Chroma (cosine similarity) |
 | Frontend | React 19 + Vite + TanStack Query + Tailwind CSS |
 | Database | SQLite (WAL mode) |
@@ -76,28 +82,45 @@ docker compose up --build
 
 Backend: http://localhost:8000 · Frontend: http://localhost:5173
 
-## Testing
+## First steps in the UI
 
-```powershell
-# Backend (126 tests)
-cd backend
-..\venv\Scripts\python.exe -m pytest -q
-
-# Frontend (Vitest)
-cd frontend
-npm run test
-```
+1. **Create a knowledge base** — give it a name and pick an embedding model
+   from your installed Ollama models. The model is locked after indexing, so
+   pick carefully.
+2. **Upload documents** — drag in PDFs, Word files, Markdown, or text. They're
+   indexed in the background; watch the status badges go from "Queued" to
+   "Processing" to "Ready."
+3. **Start a chat** — pick your knowledge base and a chat model, then ask
+   anything. Answers cite the sources they used; click a citation to open the
+   source drawer.
+4. **Change models mid-chat** — use the model dropdown in the header. The
+   switch applies to that conversation only.
+5. **Tune defaults** — visit Settings to set the default chat model, embedding
+   model, chunks per answer, temperature, and context window.
 
 ## Requirements
 
 - Python 3.13
 - Node.js 22+
-- [Ollama](https://ollama.com) running locally on `127.0.0.1:21434` with at least
-  one chat model and one embedding model:
+- [Ollama](https://ollama.com) running locally on `127.0.0.1:21434` with at
+  least one chat model and one embedding model of your choice:
 
 ```powershell
+# examples — install whichever models you want to use:
 ollama pull qwen3.5:9b
 ollama pull nomic-embed-text
+```
+
+## Testing
+
+```powershell
+# Backend
+cd backend
+..\venv\Scripts\python.exe -m pytest -q
+
+# Frontend
+cd frontend
+npm run test
 ```
 
 ## API
@@ -130,3 +153,8 @@ Runtime config comes from `.env` via `django-environ`:
 | `MAX_UPLOAD_SIZE_MB` | `50` | Max file upload size |
 
 `SECRET_KEY` is required — set it in `.env` before running.
+
+## Deep dive
+
+For the technical architecture — data flow, ports, risks and mitigations —
+see `docs/ARCHITECTURE.md`.
