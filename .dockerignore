@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.git/
+.gitignore
+venv/
+.node_modules/
+frontend/node_modules/
+frontend/dist/
+*.log
+pytest.ini
+ruff.toml
+build_plan.md

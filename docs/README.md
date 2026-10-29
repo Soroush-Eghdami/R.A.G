@@ -1,9 +1,9 @@
 # Documentation
 
-Architecture notes, API reference and operations docs live here.
+| File | Contents |
+|------|----------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, data flow, config, Docker |
+| [build_plan.md](../build_plan.md) | Full v2 phase specification (local, gitignored) |
 
-## Currently in this directory
-
-None yet. The committed architecture overview (`ARCHITECTURE.md`) and the OpenAPI
-docs (`/api/docs/`) will be added as the build phases land. See `build_plan.md`
-for the full specification (kept local to your copy).
+API docs are served live by the backend at `/api/docs/` (Swagger UI) and
+`/api/schema/` (OpenAPI JSON).

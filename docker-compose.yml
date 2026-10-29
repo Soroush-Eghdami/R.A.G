@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:21434
+    volumes:
+      - ../data:/app/data
+    depends_on:
+      - ollama-check
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+  ollama-check:
+    image: curlimages/curl:latest
+    command: >
+      -s -f --max-time 5
+      http://host.docker.internal:21434/api/tags
+      || (echo "Ollama not reachable on host.docker.internal:21434" && exit 1)
+    # This container exits immediately; it just validates Ollama is on the host.

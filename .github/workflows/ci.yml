@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      ollama:
+        image: ollama/ollama:0.40.11
+        ports:
+          - "11434:11434"
+        options: >-
+          --health-cmd "curl -f http://localhost:11434/api/tags || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements-dev.txt
+      - name: Run Ollama model pull
+        run: |
+          curl -s http://localhost:11434/api/pull -d '{"name":"nomic-embed-text"}' > /dev/null
+          curl -s http://localhost:11434/api/pull -d '{"name":"qwen3.5:9b"}' > /dev/null
+      - name: Run tests
+        run: |
+          cd backend
+          OLLAMA_BASE_URL=http://localhost:11434 python -m pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install and build
+        run: |
+          cd frontend
+          npm install
+          npm run test
+          npm run build

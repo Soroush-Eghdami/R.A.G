@@ -1,85 +1,117 @@
 # Local RAG (v2)
 
-A local, document-agnostic retrieval-augmented generation app: Django REST
-backend, React frontend, Ollama for models. No accounts, no cloud, no data
-leaving the machine.
+A private, local-only retrieval-augmented generation app. Django REST backend,
+React + Vite frontend, Ollama for models. No accounts, no cloud, nothing leaves
+your machine.
 
-> Status: **Phase 6 complete** — backend, RAG engine and the browser UI for
-> knowledge bases and settings. Chat UI lands next.
+## What it does
+
+- Upload PDFs, Word docs, Markdown or text files to a knowledge base
+- Ask questions about your documents; answers cite the exact passages they used
+- Stream answers token-by-token with citations and sources
+- Switch chat models per conversation; follow-up questions are rewritten into
+  standalone queries so pronoun-heavy questions still retrieve the right chunks
+- Dark/light theme, settings for defaults (top-k, temperature, context window)
+
+## Stack
+
+| Layer | Tech |
+|-------|------|
+| Backend | Django 5.2 + Django REST Framework |
+| RAG engine | Framework-free `rag/` package (chunking, embeddings, Chroma vector store) |
+| LLM | Ollama (chat + embedding models) |
+| Frontend | React 19 + Vite + TanStack Query + Tailwind CSS |
+| Database | SQLite (WAL mode) |
 
 ## Requirements
 
 - Python 3.13
-- Node.js 22+ (frontend, from Phase 6)
-- [Ollama](https://ollama.com) running locally with at least one chat model and
-  one embedding model, e.g.:
+- Node.js 22+
+- [Ollama](https://ollama.com) running locally on `127.0.0.1:21434` with at least
+  one chat model and one embedding model:
 
-```bash
+```powershell
 ollama pull qwen3.5:9b
 ollama pull nomic-embed-text
 ```
 
 ## Quick start
 
+**Terminal 1 — backend:**
+
 ```powershell
 # from the repository root
-.\venv\Scripts\Activate.ps1
-Copy-Item .env.example .env      # then set SECRET_KEY
+.\venv\Scripts\Activate.ps1      # or source venv/bin/activate on Linux/macOS
+Copy-Item .env.example .env       # then set SECRET_KEY
 pip install -r backend\requirements-dev.txt
 
 python backend\manage.py migrate
-python backend\manage.py createsuperuser
-python run.py
+python run.py                     # Django on http://127.0.0.1:8000
 ```
 
-Backend: http://127.0.0.1:8000 - Admin: http://127.0.0.1:8000/admin/ -
-API docs: http://127.0.0.1:8000/api/docs/
-
-Frontend (second terminal):
+**Terminal 2 — frontend:**
 
 ```powershell
 cd frontend
 npm install
-npm run dev
+npm run dev                       # Vite on http://127.0.0.1:5173
 ```
 
-UI: http://127.0.0.1:5173 - it proxies `/api` to Django, so no CORS setup
-is needed in development.
+Open http://127.0.0.1:5173. The dev server proxies `/api` to Django, so no CORS
+setup is needed.
 
-Windows shortcuts:
+## Using Docker
+
+Ollama stays on your host (port 21434). Backend and frontend run in containers:
 
 ```powershell
-.\scripts\dev.ps1
-.\scripts\ui.ps1
-.\scripts\test.ps1
+docker compose up --build
 ```
 
-## Layout
+Backend: http://localhost:8000 — Frontend: http://localhost:5173
+
+## Project layout
 
 ```
-backend/            Django project (config) + apps kb, chat, llm
-backend/rag/        Framework-free RAG engine (no Django imports)
-backend/tests/      pytest suite
-frontend/           React + Vite app (chat UI lands in Phase 7)
-data/               SQLite, uploads, Chroma (gitignored)
-scripts/            Windows dev helpers
+backend/        Django apps: chat, kb, llm + the framework-free rag/ package
+frontend/       React + Vite + TanStack Query app
+scripts/        dev.ps1 / ui.ps1 / test.ps1 helper scripts
+docs/           Architecture and operations notes
 ```
 
-## Security
+## API
 
-This app has **no authentication** and is meant to be bound to `127.0.0.1`
-only. Do not expose it to a network. Ollama cloud models are hidden by default
-because they send data off the machine; set `SHOW_CLOUD_MODELS=true` to list
-them anyway.
+Interactive docs at http://127.0.0.1:8000/api/docs/ (Swagger UI) and the raw
+OpenAPI schema at http://127.0.0.1:8000/api/schema/.
 
-## Tests
+Key endpoints:
+
+- `GET /api/health/` — backend + Ollama status
+- `GET /api/models/` — installed chat and embedding models
+- `GET/PATCH /api/settings/` — app defaults (top-k, temperature, context window)
+- `GET/POST /api/knowledge-bases/` — list and create knowledge bases
+- `POST /api/documents/` — upload a file to a knowledge base
+- `POST /api/conversations/{id}/messages/` — ask a question (SSE stream)
+
+## Testing
 
 ```powershell
-.\scripts\test.ps1
+# Backend
+cd backend
+..\venv\Scripts\python.exe -m pytest -q
+
+# Frontend
+cd frontend
+npm run test
 ```
 
-## Configuration
+## Phases
 
-All deployment settings live in `.env` (see `.env.example`). User-tunable
-values (top-k, temperature, context window, default models) will live in the
-database and be editable from the UI.
+This is v2, built in phases:
+
+- **Phase 0–4:** Backend skeleton, RAG engine, ask/stream API
+- **Phase 5:** Follow-up rewriting, auto-titles, per-conversation models
+- **Phase 6:** Frontend for knowledge bases and settings
+- **Phase 7:** Streaming chat UI with citations, dark/light mode
+- **Phase 8:** Hardening and tests (this release)
+- **Phase 9:** Packaging, Docker, README, v2.0.0 tag
