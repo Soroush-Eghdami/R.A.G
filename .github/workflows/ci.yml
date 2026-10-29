@@ -13,12 +13,12 @@ jobs:
       ollama:
         image: ollama/ollama:0.40.11
         ports:
-          - "21434:21434"
+          - "11434:11434"
         options: >-
-          --health-cmd "curl -f http://localhost:21434/api/tags || exit 1"
+          --health-cmd "curl -fsS http://localhost:11434/api/tags || exit 1"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 10
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -31,12 +31,12 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Pull Ollama models
         run: |
-          curl -s http://localhost:21434/api/pull -d '{"name":"nomic-embed-text"}' > /dev/null
-          curl -s http://localhost:21434/api/pull -d '{"name":"qwen3.5:9b"}' > /dev/null
+          curl -s http://localhost:11434/api/pull -d '{"name":"nomic-embed-text"}' > /dev/null
+          curl -s http://localhost:11434/api/pull -d '{"name":"qwen3.5:9b"}' > /dev/null
       - name: Run tests
         run: |
           cd backend
-          OLLAMA_BASE_URL=http://localhost:21434 python -m pytest -q
+          OLLAMA_BASE_URL=http://localhost:11434 python -m pytest -q
 
   frontend:
     runs-on: ubuntu-latest
