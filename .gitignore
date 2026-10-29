@@ -21,6 +21,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+# Don't ignore frontend/src/lib (our source code)
+!frontend/src/lib/
 
 # Virtual environments
 venv/
@@ -29,6 +31,7 @@ ENV/
 env.bak/
 venv.bak/
 .venv/
+!frontend/src/lib/
 
 # IDE / OS
 .vscode/
