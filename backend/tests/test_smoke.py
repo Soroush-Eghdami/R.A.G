@@ -6,7 +6,8 @@ from django.urls import reverse
 
 
 def test_settings_are_env_driven():
-    assert settings.OLLAMA_BASE_URL.startswith("http")
+    assert settings.LLAMA_CPP_CHAT_BASE_URL.startswith("http")
+    assert settings.LLAMA_CPP_EMBEDDING_BASE_URL.startswith("http")
     assert settings.DATA_DIR.exists()
     assert settings.CHROMA_DIR.exists()
     assert settings.MEDIA_ROOT.exists()

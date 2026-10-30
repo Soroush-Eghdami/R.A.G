@@ -232,14 +232,14 @@ def test_scanned_pdf_marks_failed(client, kb, store, monkeypatch):
     assert document.error
 
 
-def test_ollama_dies_mid_ingestion_marks_failed(client, kb, store, monkeypatch):
-    """If Ollama becomes unavailable during ingestion, document is marked failed."""
+def test_llama_server_dies_mid_ingestion_marks_failed(client, kb, store, monkeypatch):
+    """If llama.cpp becomes unavailable during ingestion, document is marked failed."""
     document_id = upload(client, kb).json()["id"]
 
-    from rag.ollama_client import OllamaUnavailable
+    from rag.llama_cpp_client import LLMUnavailable
 
     def boom(document):
-        raise OllamaUnavailable("Ollama connection lost")
+        raise LLMUnavailable("llama.cpp connection lost")
 
     monkeypatch.setattr(kb_services, "ingest", boom)
     run_ingestion(document_id)
@@ -256,12 +256,12 @@ def test_delete_kb_during_ingestion_cleans_up(client, kb, store, monkeypatch):
     document.status = Document.Status.PROCESSING
     document.save()
 
-    # Delete the KB (cascades to documents)
+    # Delete the KB.
     resp = client.delete(f"/api/knowledge-bases/{kb.id}/")
     assert resp.status_code == 204
 
-    # KB and document should be gone
+    # The KB and document are gone.
     assert not KnowledgeBase.objects.filter(pk=kb.id).exists()
     assert not Document.objects.filter(pk=document_id).exists()
-    # Vector collection should be dropped
+    # The vector collection is gone.
     assert store.count(str(kb.id)) == 0

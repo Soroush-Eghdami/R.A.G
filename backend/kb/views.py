@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from rag.ollama_client import OllamaError
+from rag.llama_cpp_client import LLMError
 from rag.retriever import RetrievalConfig, retrieve
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -54,7 +54,7 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
                 data["question"],
                 RetrievalConfig(top_k=data.get("top_k", 5)),
             )
-        except OllamaError as exc:
+        except LLMError as exc:
             return Response(
                 {"detail": str(exc), "code": exc.code},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -64,7 +64,7 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance: KnowledgeBase) -> None:
         services.build_store().drop(str(instance.id))
-        # Cascade deletes skip Model.delete(), so remove files here.
+        # Cascade deletes skip model hooks, so remove files here.
         for document in instance.documents.all():
             if document.file:
                 document.file.delete(save=False)

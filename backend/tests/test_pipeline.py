@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from rag.ollama_client import OllamaUnavailable
+from rag.llama_cpp_client import LLMUnavailable
 from rag.pipeline import (
     KnowledgeBaseConfig,
     _tidy_rewrite,
@@ -276,7 +276,7 @@ def test_failed_rewrite_still_answers(doc, kb, store):
     embedder = FakeEmbedder()
     ingest_document(doc, kb, store=store, embedder=embedder)
     client = FakeClient()
-    client.rewrite_error = OllamaUnavailable("Ollama went away")
+    client.rewrite_error = LLMUnavailable("llama.cpp server went away")
 
     events = list(
         answer_stream(

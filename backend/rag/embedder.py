@@ -1,12 +1,12 @@
-"""Embed text with Ollama, applying each model's task prefixes."""
+"""Embed text with llama.cpp, applying each model's task prefixes."""
 
 from __future__ import annotations
 
 from typing import Protocol, Sequence
 
-from .ollama_client import OllamaClient, OllamaResponseError
+from .llama_cpp_client import LlamaCppClient, LLMResponseError
 
-# model name fragment -> (document prefix, query prefix)
+# Model name fragment -> document and query prefixes.
 PREFIXES: dict[str, tuple[str, str]] = {
     "nomic-embed-text": ("search_document: ", "search_query: "),
     "nomic": ("search_document: ", "search_query: "),
@@ -36,12 +36,12 @@ class Embedder(Protocol):
     def embed_query(self, text: str) -> list[float]: ...
 
 
-class OllamaEmbedder:
-    """Batch embedder over POST /api/embed."""
+class LlamaCppEmbedder:
+    """Batch embedder over the OpenAI-compatible /v1/embeddings endpoint."""
 
     def __init__(
         self,
-        client: OllamaClient,
+        client: LlamaCppClient,
         model: str,
         *,
         batch_size: int = DEFAULT_BATCH_SIZE,
@@ -70,7 +70,7 @@ class OllamaEmbedder:
             ]
             embedded = self.client.embed(self.model, batch)
             if len(embedded) != len(batch):
-                raise OllamaResponseError(
+                raise LLMResponseError(
                     f"Embedding model '{self.model}' returned {len(embedded)} "
                     f"vectors for {len(batch)} inputs."
                 )
@@ -80,7 +80,7 @@ class OllamaEmbedder:
     def embed_query(self, text: str) -> list[float]:
         embedded = self.client.embed(self.model, [self.query_prefix + text])
         if not embedded:
-            raise OllamaResponseError(
+            raise LLMResponseError(
                 f"Embedding model '{self.model}' returned no vector for the question."
             )
         return embedded[0]

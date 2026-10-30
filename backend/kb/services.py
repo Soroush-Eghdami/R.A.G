@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from django.conf import settings
-from llm.services import build_client
-from rag.embedder import OllamaEmbedder
+from llm.services import build_embedding_client
+from rag.embedder import LlamaCppEmbedder
 from rag.pipeline import IngestResult, KnowledgeBaseConfig, ingest_document
 from rag.vectorstore import VectorStore
 
@@ -15,8 +15,8 @@ def build_store() -> VectorStore:
     return VectorStore(settings.CHROMA_DIR)
 
 
-def build_embedder(model: str) -> OllamaEmbedder:
-    return OllamaEmbedder(build_client(), model)
+def build_embedder(model: str) -> LlamaCppEmbedder:
+    return LlamaCppEmbedder(build_embedding_client(), model)
 
 
 def config_for(kb: KnowledgeBase) -> KnowledgeBaseConfig:

@@ -1,6 +1,5 @@
 """Serializers that document the shape of the ``llm`` endpoints."""
 
-from django.conf import settings
 from rest_framework import serializers
 
 from .models import AppSettings
@@ -21,15 +20,12 @@ class ModelSerializer(serializers.Serializer):
 class ModelsResponseSerializer(serializers.Serializer):
     chat = ModelSerializer(many=True)
     embedding = ModelSerializer(many=True)
-    cloud_hidden = serializers.IntegerField(
-        help_text="Cloud models hidden because SHOW_CLOUD_MODELS is false."
-    )
-    base_url = serializers.CharField()
+    chat_base_url = serializers.CharField()
+    embedding_base_url = serializers.CharField()
 
 
-class OllamaHealthSerializer(serializers.Serializer):
+class LlamaCppHealthSerializer(serializers.Serializer):
     reachable = serializers.BooleanField()
-    version = serializers.CharField(allow_null=True)
     base_url = serializers.CharField()
     error = serializers.CharField(allow_null=True)
 
@@ -40,7 +36,8 @@ class DatabaseHealthSerializer(serializers.Serializer):
 
 class HealthResponseSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=["ok", "degraded"])
-    ollama = OllamaHealthSerializer()
+    chat = LlamaCppHealthSerializer()
+    embedding = LlamaCppHealthSerializer()
     database = DatabaseHealthSerializer()
 
 
@@ -50,8 +47,10 @@ class ErrorSerializer(serializers.Serializer):
 
 
 class AppSettingsSerializer(serializers.ModelSerializer):
-    # Deployment config, so it stays read-only here.
-    ollama_base_url = serializers.SerializerMethodField()
+    # Deployment settings are read-only here.
+    llama_cpp_chat_base_url = serializers.SerializerMethodField()
+    llama_cpp_embedding_base_url = serializers.SerializerMethodField()
+    max_num_ctx = serializers.SerializerMethodField()
 
     class Meta:
         model = AppSettings
@@ -61,13 +60,32 @@ class AppSettingsSerializer(serializers.ModelSerializer):
             "top_k",
             "temperature",
             "num_ctx",
-            "ollama_base_url",
+            "llama_cpp_chat_base_url",
+            "llama_cpp_embedding_base_url",
+            "max_num_ctx",
             "updated_at",
         ]
-        read_only_fields = ["ollama_base_url", "updated_at"]
+        read_only_fields = [
+            "llama_cpp_chat_base_url",
+            "llama_cpp_embedding_base_url",
+            "max_num_ctx",
+            "updated_at",
+        ]
 
-    def get_ollama_base_url(self, obj: AppSettings) -> str:
-        return settings.OLLAMA_BASE_URL
+    def get_llama_cpp_chat_base_url(self, obj: AppSettings) -> str:
+        from django.conf import settings
+
+        return settings.LLAMA_CPP_CHAT_BASE_URL
+
+    def get_llama_cpp_embedding_base_url(self, obj: AppSettings) -> str:
+        from django.conf import settings
+
+        return settings.LLAMA_CPP_EMBEDDING_BASE_URL
+
+    def get_max_num_ctx(self, obj: AppSettings) -> int:
+        from django.conf import settings
+
+        return settings.LLAMA_CPP_CONTEXT_SIZE
 
     def validate_top_k(self, value: int) -> int:
         if not 1 <= value <= 20:
@@ -80,6 +98,10 @@ class AppSettingsSerializer(serializers.ModelSerializer):
         return value
 
     def validate_num_ctx(self, value: int) -> int:
-        if not 512 <= value <= 131072:
-            raise serializers.ValidationError("Between 512 and 131072.")
+        from django.conf import settings
+
+        if not 512 <= value <= settings.LLAMA_CPP_CONTEXT_SIZE:
+            raise serializers.ValidationError(
+                f"Between 512 and {settings.LLAMA_CPP_CONTEXT_SIZE}."
+            )
         return value

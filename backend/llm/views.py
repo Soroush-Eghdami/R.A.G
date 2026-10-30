@@ -1,8 +1,6 @@
-"""Ollama health and model discovery endpoints."""
+"""llama.cpp health and configured model endpoints."""
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rag.ollama_client import OllamaError, OllamaUnavailable
-from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,7 +9,6 @@ from . import services
 from .models import AppSettings
 from .serializers import (
     AppSettingsSerializer,
-    ErrorSerializer,
     HealthResponseSerializer,
     ModelsResponseSerializer,
 )
@@ -19,53 +16,41 @@ from .serializers import (
 
 @extend_schema(
     tags=["system"],
-    summary="Backend and Ollama health",
+    summary="Backend and llama.cpp server health",
     responses={200: HealthResponseSerializer},
 )
 @api_view(["GET"])
 def health(request: Request) -> Response:
-    """Always returns 200; ``status`` is ``degraded`` if Ollama or the DB is down."""
+    """Always returns 200; status is degraded if a model server or DB is down."""
     return Response(services.get_health())
 
 
 @extend_schema(
     tags=["system"],
-    summary="List installed Ollama models",
+    summary="List configured llama.cpp models",
     parameters=[
         OpenApiParameter(
             name="refresh",
             type=bool,
             location=OpenApiParameter.QUERY,
-            description="Bypass the 30 second cache.",
+            description="Accepted for compatibility; configured aliases are returned.",
         )
     ],
-    responses={200: ModelsResponseSerializer, 502: ErrorSerializer, 503: ErrorSerializer},
+    responses={200: ModelsResponseSerializer},
 )
 @api_view(["GET"])
 def models(request: Request) -> Response:
-    """Split installed models into chat and embedding models."""
-    refresh = request.query_params.get("refresh", "").lower() in {"1", "true", "yes"}
-    try:
-        discovered, cloud_hidden, base_url = services.visible_models(force=refresh)
-    except OllamaUnavailable as exc:
-        return Response(
-            {"detail": str(exc), "code": exc.code},
-            status=status.HTTP_503_SERVICE_UNAVAILABLE,
-        )
-    except OllamaError as exc:
-        return Response(
-            {"detail": str(exc), "code": exc.code},
-            status=status.HTTP_502_BAD_GATEWAY,
-        )
-
+    """Return configured chat and embedding aliases."""
+    del request
+    discovered, _, _ = services.visible_models()
     return Response(
         {
             "chat": [model.as_dict() for model in discovered if model.kind == "chat"],
             "embedding": [
                 model.as_dict() for model in discovered if model.kind == "embedding"
             ],
-            "cloud_hidden": cloud_hidden,
-            "base_url": base_url,
+            "chat_base_url": services.build_chat_client().base_url,
+            "embedding_base_url": services.build_embedding_client().base_url,
         }
     )
 

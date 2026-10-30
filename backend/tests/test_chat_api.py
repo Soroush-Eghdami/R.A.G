@@ -11,7 +11,7 @@ from kb import services as kb_services
 from kb.models import KnowledgeBase
 from llm.models import AppSettings
 from rag.chunking import Chunk
-from rag.ollama_client import OllamaUnavailable
+from rag.llama_cpp_client import LLMUnavailable
 from rag.vectorstore import VectorStore
 
 pytestmark = pytest.mark.django_db
@@ -50,7 +50,7 @@ class FakeClient:
 class FailingClient(FakeClient):
     def chat_stream(self, model, messages, *, options=None, think=None):
         yield {"message": {"content": "half an ans"}}
-        raise OllamaUnavailable("Ollama stopped responding.")
+        raise LLMUnavailable("llama.cpp server stopped responding.")
 
 
 @pytest.fixture(autouse=True)
@@ -91,7 +91,7 @@ def runtime(settings, kb, monkeypatch):
         "build_runtime",
         lambda knowledge_base: (client, store, embedder),
     )
-    # The search endpoint builds its own store/embedder.
+    # Search builds its own store and embedder.
     monkeypatch.setattr(kb_services, "build_store", lambda: store)
     monkeypatch.setattr(kb_services, "build_embedder", lambda model: embedder)
     return client, store, embedder
@@ -112,13 +112,14 @@ def test_conversation_uses_default_chat_model(client, kb, settings_row):
     assert response.json()["chat_model"] == "fake-chat"
 
 
-def test_conversation_requires_a_chat_model(client, kb):
+def test_conversation_uses_configured_chat_model_when_not_specified(client, kb):
     response = client.post(
         "/api/conversations/",
         {"knowledge_base": str(kb.id)},
         format="json",
     )
-    assert response.status_code == 400
+    assert response.status_code == 201
+    assert response.json()["chat_model"] == "Qwen3.5-9B"
 
 
 def test_json_answer_is_saved(client, kb, settings_row, runtime):
@@ -189,7 +190,7 @@ def test_stream_error_event_keeps_partial_answer(client, kb, settings_row, runti
     )
     raw = b"".join(response.streaming_content).decode("utf-8")
     assert "event: error" in raw
-    assert "ollama_unavailable" in raw
+    assert "llm_unavailable" in raw
 
     saved = Message.objects.get(conversation_id=conversation_id, role=Message.Role.ASSISTANT)
     assert saved.content == "half an ans"
@@ -271,7 +272,7 @@ def test_follow_up_is_rewritten_before_search(client, kb, settings_row, runtime)
     assert response.status_code == 200
     assert response.json()["rewritten"] == "What are alpha's limits?"
     assert len(runtime[0].rewrites) == 1
-    # The answer still sees the question the user typed.
+    # The answer keeps the original question.
     assert runtime[0].calls[-1]["messages"][-1]["content"] == "And what about it?"
 
 

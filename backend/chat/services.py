@@ -7,9 +7,10 @@ from typing import Any, Iterable, Iterator, Sequence
 from django.conf import settings
 from django.utils import timezone
 from kb.models import KnowledgeBase
-from kb.services import build_client, build_embedder, build_store, config_for
+from kb.services import build_embedder, build_store, config_for
 from llm.models import AppSettings
-from rag.ollama_client import OllamaClient
+from llm.services import build_chat_client
+from rag.llama_cpp_client import LlamaCppClient
 from rag.pipeline import StreamEvent, answer_stream
 from rag.retriever import RetrievalConfig
 from rag.vectorstore import RetrievedChunk, VectorStore
@@ -17,9 +18,9 @@ from rag.vectorstore import RetrievedChunk, VectorStore
 from .models import Conversation, Message
 
 
-def build_runtime(kb: KnowledgeBase) -> tuple[OllamaClient, VectorStore, Any]:
+def build_runtime(kb: KnowledgeBase) -> tuple[LlamaCppClient, VectorStore, Any]:
     """Client, vector store and embedder for one knowledge base."""
-    client = build_client()
+    client = build_chat_client()
     return client, build_store(), build_embedder(kb.embedding_model)
 
 

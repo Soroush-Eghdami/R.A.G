@@ -10,8 +10,8 @@ from uuid import uuid4
 
 from .chunking import ChunkConfig, chunk_blocks
 from .embedder import Embedder
+from .llama_cpp_client import LlamaCppClient, LLMError
 from .loaders import EmptyDocument, load_document
-from .ollama_client import OllamaClient, OllamaError
 from .prompts import NO_ANSWER, SYSTEM_PROMPT, build_messages
 from .retriever import RetrievalConfig, retrieve
 from .vectorstore import RetrievedChunk, VectorStore
@@ -19,7 +19,7 @@ from .vectorstore import RetrievedChunk, VectorStore
 CHARS_PER_TOKEN = 4
 EventType = Literal["query", "sources", "delta", "done"]
 
-# Words that usually point back at something said earlier.
+# Words that often refer to earlier messages.
 REFERENCE_WORDS = frozenset(
     {
         "it", "its", "it's", "that", "this", "these", "those", "they", "them",
@@ -28,7 +28,7 @@ REFERENCE_WORDS = frozenset(
     }
 )
 
-# Questions that start like this rarely stand on their own.
+# These questions often need earlier context.
 FOLLOW_UP_STARTS = (
     "and ", "also ", "but ", "then ", "so ", "what about", "how about",
     "why", "explain", "elaborate", "tell me more", "more detail", "again",
@@ -75,7 +75,7 @@ class StreamEvent:
     thinking: bool = False
     sources: tuple[RetrievedChunk, ...] = ()
     model: str = ""
-    # Only set on "query" events: the question the user actually typed.
+    # Keep the user's original question for query events.
     original: str = ""
 
 
@@ -115,7 +115,7 @@ def rewrite_query(
     question: str,
     history: Sequence[dict[str, Any]],
     *,
-    client: OllamaClient,
+    client: LlamaCppClient,
     chat_model: str,
     num_ctx: int = 8192,
 ) -> str:
@@ -136,8 +136,8 @@ def rewrite_query(
             options={"num_ctx": num_ctx, "temperature": 0.0},
             think=False,
         )
-    except OllamaError:
-        # A missing rewrite is not worth failing the whole answer over.
+    except LLMError:
+        # Continue if rewriting fails.
         return question
 
     reply = (data.get("message") or {}).get("content") or ""
@@ -217,7 +217,7 @@ def answer_stream(
     kb: KnowledgeBaseConfig,
     *,
     chat_model: str,
-    client: OllamaClient,
+    client: LlamaCppClient,
     store: VectorStore,
     embedder: Embedder,
     history: Sequence[dict[str, Any]] = (),
@@ -233,7 +233,7 @@ def answer_stream(
     if not question:
         raise ValueError("question cannot be empty")
 
-    # Follow-ups like "what about its limits?" retrieve badly as written.
+    # Follow-ups often need rewriting before retrieval.
     search_query = question
     if rewrite_followups and history and looks_like_follow_up(question):
         search_query = rewrite_query(
@@ -241,7 +241,7 @@ def answer_stream(
             history,
             client=client,
             chat_model=chat_model,
-            # Same window as the answer, or Ollama reloads the model twice.
+            # Keep the rewrite on the same loaded llama.cpp chat server.
             num_ctx=num_ctx,
         )
         if search_query != question:

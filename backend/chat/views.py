@@ -6,11 +6,11 @@ import json
 import logging
 
 from django.http import StreamingHttpResponse
-from rag.ollama_client import (
+from rag.llama_cpp_client import (
+    LLMError,
+    LLMResponseError,
+    LLMUnavailable,
     ModelNotFound,
-    OllamaError,
-    OllamaResponseError,
-    OllamaUnavailable,
 )
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -28,12 +28,12 @@ def sse(event: str, data) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-def error_status(exc: OllamaError) -> int:
-    if isinstance(exc, OllamaUnavailable):
+def error_status(exc: LLMError) -> int:
+    if isinstance(exc, LLMUnavailable):
         return 503
     if isinstance(exc, ModelNotFound):
         return 409
-    if isinstance(exc, OllamaResponseError):
+    if isinstance(exc, LLMResponseError):
         return 502
     return 502
 
@@ -86,7 +86,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
                     sources = services.sources_payload(event.sources)
                 elif event.type == "delta" and not event.thinking:
                     parts.append(event.text)
-        except OllamaError as exc:
+        except LLMError as exc:
             return Response(
                 {"detail": str(exc), "code": exc.code},
                 status=error_status(exc),
@@ -152,7 +152,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
                     elif event.type == "done":
                         message = persist()
                         yield sse("done", {"message_id": getattr(message, "id", None)})
-            except OllamaError as exc:
+            except LLMError as exc:
                 persist()
                 yield sse("error", {"detail": str(exc), "code": exc.code})
             except Exception:  # noqa: BLE001 - always tell the client something

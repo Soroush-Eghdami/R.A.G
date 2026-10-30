@@ -1,154 +1,121 @@
-# Architecture — Local RAG v2
+# Architecture — Local RAG
 
 ## System overview
 
-```
-┌─────────────────────┐      HTTP/SSE (text/event-stream)      ┌──────────────────────────────┐
-│   React + Vite UI   │  <====================================>   Django REST backend        │
-│   http://:5173      │                                        │   http://:8000               │
-│                     │                                        │                              │
-│  • Knowledge bases  │                                        │  llm app:  /api/health/     │
-│  • Document upload  │                                        │         /api/models/        │
-│  • Chat + citations │                                        │         /api/settings/      │
-│  • Dark/light theme │                                        │  kb app:   /api/kb/         │
-│                     │                                        │         /api/documents/     │
-└─────────────────────┘                                        │  chat app: /api/conversations│
-                                                               │         /api/messages/       │
-                                                               └──────────────────────────────┘
-                                                                       │
-                                                                  Ollama HTTP API
-                                                                       │
-                                                                       ▼
-                                                          ┌─────────────────────┐
-                                                          │      Ollama         │
-                                                          │  chat + embeddings  │
-                                                          │ any chat model     │
-                                                          │ any embedding model │
-                                                          │ (user picks)       │
-                                                          │ from Ollama        |
-                                                          └─────────────────────┘
+```text
+React + Vite UI
+     │ HTTP / SSE
+     ▼
+Django REST backend ───── SQLite (metadata, conversations, settings)
+     │
+     ├── llama.cpp chat server       :8082 (Qwen3.5 9B GGUF)
+     ├── llama.cpp embedding server  :8083 (Nomic Embed Text v1.5 GGUF)
+     └── Chroma                     (vectors and chunk metadata)
 ```
 
-The frontend talks only to Django. Django talks to Ollama. Nothing calls Ollama
-directly from the browser. No data ever leaves the machine.
+The browser only talks to Django. Django connects to separate OpenAI-compatible
+llama.cpp server URLs for generation and embeddings. Local development binds
+these servers to loopback; Docker requires host access to the ports.
 
 ## Backend apps
 
-### `llm` — system surface
-- `GET /api/health/` — backend + Ollama reachability, version, base URL
-- `GET /api/models/` — installed models split into `chat` / `embedding`, plus
-  `cloud_hidden` count (`:cloud` models are hidden by default)
-- `GET/PATCH /api/settings/` — app defaults: default chat model, default
-  embedding model, top_k, temperature, num_ctx. `ollama_base_url` is exposed
-  read-only (deployment config, not app config).
+### `llm` — configured model endpoints and health
+
+- `GET /api/health/` reports chat server, embedding server, and database health.
+- `GET /api/models/` reports the configured model aliases. llama.cpp does not
+  provide Ollama-style discovery across independent servers.
+- `GET/PATCH /api/settings/` manages defaults; server URLs are read-only.
 
 ### `kb` — knowledge bases and ingestion
-- `GET/POST /api/knowledge-bases/` — list, create, filter
-- `GET/PATCH/DELETE /api/knowledge-bases/{id}/` — detail; embedding model is
-  locked after a document is indexed
-- `POST /api/documents/` — upload; sha256 dedupe (returns 202), queued for
-  background ingestion
-- `GET /api/documents/?knowledge_base=<id>` — list documents with status
-- `DELETE /api/documents/{id}/` — remove file + vectors
-- `POST /api/kb/{id}/search/` — retrieval-only endpoint (no model call),
-  useful for tuning
+
+- Knowledge bases lock their embedding alias once indexed.
+- Uploads are hashed and deduplicated per knowledge base.
+- One in-process worker thread parses, chunks, embeds, and stores documents.
+- A failed ingestion marks the document failed and records the error.
 
 ### `chat` — conversations and answers
-- `GET/POST /api/conversations/` — list/create; title set from first question
-- `GET/PATCH/DELETE /api/conversations/{id}/` — detail; `chat_model` can be
-  switched per conversation (PATCH)
-- `POST /api/conversations/{id}/messages/` — ask; SSE stream:
-  `sources` → `token`* → `done` (or `error`); non-streaming JSON fallback with
-  `stream: false`
+
+- Chat model aliases are stored per conversation.
+- Questions stream as Server-Sent Events with sources sent before answer tokens.
+- Recent conversation history is budgeted before generation.
 
 ### `rag/` — framework-free RAG engine
-The `rag/` package imports no Django. Django apps call into it.
 
-- `loaders/` — txt, md, docx, pdf (PyMuPDF, one block per page)
-- `chunking.py` — fixed-size chunks: 900 chars, 120 overlap (configurable)
-- `embedder.py` — OllamaEmbedder; prefix table for nomic-style models
-- `vectorstore.py` — Chroma (cosine), one collection per KB
-- `retriever.py` — top-k + max_distance guard (0.65 loose)
-- `prompts.py` — SYSTEM_PROMPT: answer only from context, say "I don't know"
-  when missing, cite inline like [1], no source list at the end
-- `pipeline.py` — `answer_stream()`: rewrite follow-ups → retrieve → budget
-  context → stream model output as SSE events (`sources`, `token`,
-  `thinking`, `done`, `error`)
+- `loaders/`: TXT, Markdown, DOCX, and PDF.
+- `chunking.py`: configurable chunks and overlap.
+- `embedder.py`: batch Nomic embeddings with model-specific task prefixes.
+- `llama_cpp_client.py`: OpenAI-compatible chat-completion and embedding calls.
+- `vectorstore.py`: one Chroma cosine collection per knowledge base.
+- `retriever.py`: top-k retrieval and a similarity-distance guard.
+- `pipeline.py`: follow-up rewriting, context budgeting, retrieval, generation.
 
 ## Data flow
 
-### 1. Upload → ingest
-1. File is hashed (sha256) for dedupe; duplicate returns 409
-2. Document row created with status `pending`, saved to `media/`
-3. Ingestion is queued on a single `ThreadPoolExecutor(max_workers=1)`;
-   SQLite WAL + `busy_timeout=20000` avoids writer contention
-4. Worker loads, chunks, embeds, stores in Chroma; document marked `ready` or
-   `failed` with a friendly error message
+### Ingest
 
-### 2. Ask → answer
-1. Question is embedded; top-k chunks retrieved from Chroma (cosine distance)
-2. Context budget: `num_ctx − reserve_output_tokens`; system prompt + question
-   fixed cost; history gets 25% of remaining budget; chunks fill the rest
-3. If the question looks like a follow-up (short, pronoun-heavy, or follow-up
-   prefix) and history exists, it is rewritten into a standalone query using
-   the same `num_ctx` as the answer (avoids a double model reload: 21s → ~6s)
-4. `SYSTEM_PROMPT` + numbered context + recent history + question are sent to
-   Ollama; answer streams back as SSE events
-5. Assistant message is saved with `sources` attached so the UI can cite
+1. Validate upload type/size and compute SHA-256.
+2. Save the file and queue the document for background processing.
+3. Extract text, preserve page/heading metadata, and split into chunks.
+4. Prefix document text as required by Nomic Embed Text v1.5.
+5. Batch POST to the embedding server's `/v1/embeddings` endpoint.
+6. Store vectors, text, and citation metadata in Chroma.
 
-## Ports and networking
+### Ask
 
-| Service | Port | Bind |
-|---------|------|------|
-| Django backend | 8000 | `127.0.0.1` |
-| Vite frontend (dev) | 5173 | `127.0.0.1` |
-| Ollama | 21434 | `127.0.0.1` (host, fixed) |
+1. Optionally rewrite a follow-up question using recent chat history.
+2. Prefix and embed the standalone query using `search_query:`.
+3. Retrieve the closest passages and fit them and history to the prompt budget.
+4. POST messages to the chat server's `/v1/chat/completions` endpoint.
+5. Forward reasoning/content as SSE and persist the final answer and citations.
 
-Ollama port 21434 is permanent — Windows dynamic TCP exclusion ranges forced
-this port, and the Ollama tray app ignores `OLLAMA_HOST`, so autostart was
-replaced by a scheduled task (`"Ollama 21434"`) plus a helper script.
+## llama.cpp servers
 
-## Docker
+The included `scripts/start-llama.ps1` starts one server per model:
 
-`docker compose up --build` starts backend and frontend containers. Ollama stays
-on the host; containers reach it at `host.docker.internal:21434` via
-`OLLAMA_BASE_URL`.
+| Purpose | Model alias | Port | Important options |
+|---|---|---:|---|
+| Chat | `Qwen3.5-9B` | 8082 | Vulkan0, GPU offload, context 8192 |
+| Embeddings | `nomic-embed-text-v1.5` | 8083 | Vulkan0, `--embedding`, mean pooling |
 
-## Configuration (`.env`, `django-environ`)
+Each alias must match the corresponding `LLAMA_CPP_*_MODEL` setting and the
+server's `--alias`. Nomic's document/query prefixes are automatically applied.
+The context setting in the app is a prompt budget and should not exceed the
+chat server's `--ctx-size`.
+
+The two servers load two models concurrently. Integrated graphics use shared
+system memory; reduce GPU layers or context size if memory pressure occurs.
+
+### Docker networking
+
+Compose points the backend at `host.docker.internal:8082` and `:8083`. The model
+servers must be started with `-HostAddress 0.0.0.0` for containers to reach the
+host. That binding may expose the servers to the LAN, so use a trusted network
+and firewall rules. Outside Docker, keep the default loopback binding.
+
+## Configuration
 
 | Variable | Default | Purpose |
-|----------|---------|---------|
-| `SECRET_KEY` | *(required)* | Django secret key |
-| `OLLAMA_BASE_URL` | `http://127.0.0.1:21434` | Ollama endpoint |
-| `OLLAMA_CONNECT_TIMEOUT` | `5` | Seconds |
-| `OLLAMA_REQUEST_TIMEOUT` | `600` | Seconds |
-| `DEFAULT_TOP_K` | `4` | Chunks per answer |
-| `DEFAULT_TEMPERATURE` | `0.2` | Model temperature |
-| `DEFAULT_NUM_CTX` | `8192` | Context window (tokens) |
-| `DEFAULT_THINK` | `false` | Enable thinking mode by default |
-| `REWRITE_FOLLOWUPS` | `true` | Rewrite follow-up questions |
-| `MODEL_CACHE_TTL` | `30` | Model list cache (seconds) |
-| `SHOW_CLOUD_MODELS` | `false` | Hide `:cloud` models |
-| `STARTUP_RECOVERY` | `true` | Recover stuck docs on first request |
-| `MAX_UPLOAD_SIZE_MB` | `50` | Max file upload size |
+|---|---|---|
+| `LLAMA_CPP_CHAT_BASE_URL` | `http://127.0.0.1:8082` | Chat endpoint |
+| `LLAMA_CPP_EMBEDDING_BASE_URL` | `http://127.0.0.1:8083` | Embedding endpoint |
+| `LLAMA_CPP_CHAT_MODEL` | `Qwen3.5-9B` | Chat alias |
+| `LLAMA_CPP_EMBEDDING_MODEL` | `nomic-embed-text-v1.5` | Embedding alias |
+| `LLAMA_CPP_CONNECT_TIMEOUT` | `5` | Connect timeout in seconds |
+| `LLAMA_CPP_REQUEST_TIMEOUT` | `600` | Request timeout in seconds |
+| `LLAMA_CPP_CONTEXT_SIZE` | `8192` | Server context limit and maximum app prompt budget |
+| `DEFAULT_NUM_CTX` | `8192` | RAG prompt budget |
+| `DEFAULT_TOP_K` | `4` | Retrieved chunks |
+| `DEFAULT_TEMPERATURE` | `0.2` | Generation temperature |
+| `MAX_UPLOAD_SIZE_MB` | `50` | Upload limit |
 
-## Known risks and mitigations
+## Important migration note
 
-| Risk | Mitigation |
-|------|------------|
-| Embedding model mismatch | Model locked per KB; explicit re-index via new KB |
-| Default context too small | Always send `num_ctx`; budget chunks to fit |
-| Missing embedding prefixes | Prefix table in `embedder.py` |
-| `runserver` auto-reload kills ingestion | Lazy singleton Chroma client; recover stuck docs on first request; `--noreload` |
-| Long streaming requests | SSE headers, `X-Accel-Buffering: no`, 600s Ollama timeout |
-| Chroma + SQLite drift | Delete both in one service function; `reconcile` management command |
-| Scanned PDFs (no text) | `EmptyDocument` → document marked `failed` with clear message |
-| Huge uploads | Max upload size; stream to disk; page-by-page processing |
-| Thinking models leak `think` text | `thinking` events filtered from UI unless toggle enabled |
-| Ollama not running | Typed errors → 503 + friendly UI banner |
-| Exposing beyond localhost | Bind `127.0.0.1`; document it; auth only if opened up |
+Vectors generated by a different embedding model/runtime configuration are not
+safe to query with Nomic Embed Text v1.5. Create a fresh knowledge base and
+re-upload the original documents before querying against this embedding model.
+Keep the old data directory until the new index has been checked.
 
-## Testing
+## Tests
 
-- Backend: `pytest` — 126 tests, mocked Ollama, fast and deterministic
-- Frontend: `vitest` — SSE parser tests, 8 cases
+The backend tests mock HTTP calls to llama.cpp; unit tests use fake embeddings
+and a temporary Chroma store. No model server is needed to run the test suite.

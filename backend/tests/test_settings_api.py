@@ -14,7 +14,9 @@ def test_settings_return_defaults(client, settings):
     body = response.json()
     assert body["top_k"] == settings.DEFAULT_TOP_K
     assert body["num_ctx"] == settings.DEFAULT_NUM_CTX
-    assert body["ollama_base_url"] == settings.OLLAMA_BASE_URL
+    assert body["llama_cpp_chat_base_url"] == settings.LLAMA_CPP_CHAT_BASE_URL
+    assert body["llama_cpp_embedding_base_url"] == settings.LLAMA_CPP_EMBEDDING_BASE_URL
+    assert body["max_num_ctx"] == settings.LLAMA_CPP_CONTEXT_SIZE
 
 
 def test_settings_can_be_changed(client):
@@ -32,14 +34,20 @@ def test_settings_can_be_changed(client):
     assert saved.num_ctx == 4096
 
 
-def test_base_url_is_read_only(client, settings):
+def test_server_urls_are_read_only(client, settings):
     response = client.patch(
         "/api/settings/",
-        {"ollama_base_url": "http://example.com:9999"},
+        {
+            "llama_cpp_chat_base_url": "http://example.com:9999",
+            "llama_cpp_embedding_base_url": "http://example.com:9998",
+        },
         format="json",
     )
     assert response.status_code == 200
-    assert response.json()["ollama_base_url"] == settings.OLLAMA_BASE_URL
+    assert response.json()["llama_cpp_chat_base_url"] == settings.LLAMA_CPP_CHAT_BASE_URL
+    assert response.json()["llama_cpp_embedding_base_url"] == (
+        settings.LLAMA_CPP_EMBEDDING_BASE_URL
+    )
 
 
 @pytest.mark.parametrize(
@@ -48,4 +56,14 @@ def test_base_url_is_read_only(client, settings):
 )
 def test_bad_values_are_rejected(client, payload):
     response = client.patch("/api/settings/", payload, format="json")
+    assert response.status_code == 400
+
+
+def test_context_must_fit_the_server_limit(client, settings):
+    settings.LLAMA_CPP_CONTEXT_SIZE = 4096
+    response = client.patch(
+        "/api/settings/",
+        {"num_ctx": 8192},
+        format="json",
+    )
     assert response.status_code == 400
