@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-/** Small stroke icons. They inherit color and size from the parent. */
+/** Icons inherit their size and color from the parent. */
 type IconProps = SVGProps<SVGSVGElement>;
 
 function Icon({ children, ...props }: IconProps) {

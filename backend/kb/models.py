@@ -27,7 +27,7 @@ class KnowledgeBase(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200, unique=True)
     description = models.TextField(blank=True)
-    # Changing this means re-indexing, so it locks after the first document.
+    # Changing this after upload requires a reindex.
     embedding_model = models.CharField(max_length=200)
     chunk_size = models.PositiveIntegerField(default=_chunk_size_default)
     chunk_overlap = models.PositiveIntegerField(default=_chunk_overlap_default)

@@ -7,9 +7,9 @@ type Props = {
   onCite: (n: number) => void;
 };
 
-/** Renders an answer and turns [1] into a clickable citation. */
+/** Render answers with clickable citations. */
 export default function AnswerMarkdown({ text, onCite }: Props) {
-  // Negative lookahead keeps real markdown links like [1](url) intact.
+  // Leave Markdown links such as [1](url) unchanged.
   const prepared = text.replace(/\[(\d{1,2})\](?!\()/g, "[cite-$1](#cite-$1)");
 
   return (

@@ -17,7 +17,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class ConversationSerializer(serializers.ModelSerializer):
-    # Optional: falls back to AppSettings, then to DEFAULT_CHAT_MODEL.
+    # Falls back to the configured default when empty.
     chat_model = serializers.CharField(required=False, allow_blank=True)
     messages = MessageSerializer(many=True, read_only=True)
     message_count = serializers.SerializerMethodField()
