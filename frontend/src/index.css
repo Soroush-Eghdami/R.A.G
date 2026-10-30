@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* The palette lives in CSS variables, so the toggle only swaps values. */
+/* Theme tokens keep both modes in sync. */
 @theme inline {
   --color-app: var(--tone-app);
   --color-surface: var(--tone-surface);
@@ -10,43 +10,61 @@
   --color-muted: var(--tone-muted);
   --color-primary: var(--tone-primary);
   --color-primary-hover: var(--tone-primary-hover);
+  --color-on-primary: var(--tone-on-primary);
   --color-accent: var(--tone-accent);
   --color-success: var(--tone-success);
   --color-warning: var(--tone-warning);
   --color-danger: var(--tone-danger);
+  --font-sans: "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Light theme (the default until the saved class says otherwise). */
+/* Light theme. */
 :root {
-  --tone-app: #f8fafc;
-  --tone-surface: #ffffff;
-  --tone-elevated: #f1f5f9;
-  --tone-line: #e2e8f0;
-  --tone-ink: #0f172a;
-  --tone-muted: #64748b;
-  --tone-primary: #4f46e5;
-  --tone-primary-hover: #6366f1;
-  --tone-accent: #0d9488;
-  --tone-success: #059669;
-  --tone-warning: #b45309;
-  --tone-danger: #dc2626;
+  --bg: #f4f5ef;
+  --surface: #fcfcf8;
+  --raised: #e8ede4;
+  --border: #d3dbcf;
+  --moss: #6b7f5b;
+  --moss-bright: #526b43;
+  --text-muted: #687365;
+  --text-soft: #485344;
+  --text: #263026;
+  --accent: #b95335;
+  --accent-soft: #a5462d;
+
+  --tone-app: var(--bg);
+  --tone-surface: var(--surface);
+  --tone-elevated: var(--raised);
+  --tone-line: var(--border);
+  --tone-ink: var(--text);
+  --tone-muted: var(--text-muted);
+  --tone-primary: var(--moss-bright);
+  --tone-primary-hover: #43583a;
+  --tone-on-primary: #ffffff;
+  --tone-accent: var(--accent);
+  --tone-success: var(--moss-bright);
+  --tone-warning: #94651c;
+  --tone-danger: #b4453f;
   color-scheme: light;
 }
 
-/* Dark theme, the one we actually live in. */
 .dark {
-  --tone-app: #0b0f19;
-  --tone-surface: #121826;
-  --tone-elevated: #1a2235;
-  --tone-line: #263049;
-  --tone-ink: #e6eaf2;
-  --tone-muted: #8b96ae;
-  --tone-primary: #6366f1;
-  --tone-primary-hover: #818cf8;
-  --tone-accent: #2dd4bf;
-  --tone-success: #34d399;
-  --tone-warning: #fbbf24;
-  --tone-danger: #f87171;
+  --bg: #0f140f;
+  --surface: #172018;
+  --raised: #2e3a2f;
+  --border: #3f4f40;
+  --moss: #6b7f5b;
+  --moss-bright: #9db587;
+  --text-muted: #a29683;
+  --text-soft: #d9c9b2;
+  --text: #f8f6ee;
+  --accent: #c96f4f;
+  --accent-soft: #df8969;
+
+  --tone-on-primary: #172018;
+  --tone-primary-hover: #b1c99b;
+  --tone-warning: #d8ac69;
+  --tone-danger: #e38b82;
   color-scheme: dark;
 }
 
@@ -59,7 +77,10 @@ body,
 }
 
 body {
-  background-color: var(--tone-app);
+  background:
+    radial-gradient(ellipse at 82% 0%, color-mix(in srgb, var(--tone-primary) 8%, transparent), transparent 34rem),
+    radial-gradient(ellipse at 8% 100%, color-mix(in srgb, var(--tone-accent) 6%, transparent), transparent 32rem),
+    var(--tone-app);
   color: var(--tone-ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -69,7 +90,7 @@ body {
   background: color-mix(in oklab, var(--tone-accent) 30%, transparent);
 }
 
-/* Thin, quiet scrollbars that match the theme. */
+/* Theme-matched scrollbars. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--tone-line) transparent;
@@ -88,11 +109,27 @@ body {
 }
 
 dialog::backdrop {
-  background: rgb(3 6 15 / 0.6);
+  background: rgb(5 8 5 / 0.65);
   backdrop-filter: blur(3px);
 }
 
-/* Markdown: the <pre> draws the box, the <code> inside stays plain. */
+button,
+select,
+textarea,
+input {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tone-primary) 75%, transparent);
+  outline-offset: 2px;
+}
+
+/* Keep code blocks styled by their surrounding <pre>. */
 .markdown pre code {
   background: transparent;
   padding: 0;
@@ -112,7 +149,7 @@ dialog::backdrop {
   text-underline-offset: 2px;
 }
 
-/* Two tiny entrance animations, reused around the app. */
+/* Shared entrance animations. */
 @keyframes slide-in {
   from {
     opacity: 0;
@@ -141,4 +178,15 @@ dialog::backdrop {
 
 .animate-rise {
   animation: rise 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

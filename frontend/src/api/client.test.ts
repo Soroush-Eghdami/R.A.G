@@ -34,12 +34,12 @@ data: {"message_id": 42}`;
 
 it("parses an error event", () => {
     const block = `event: error
-data: {"detail": "boom", "code": "ollama_timeout"}`;
+data: {"detail": "boom", "code": "llm_timeout"}`;
     const result = parseEvent(block);
     expect(result).toEqual({
       type: "error",
       detail: "boom",
-      code: "ollama_timeout",
+      code: "llm_timeout",
     });
 });
 

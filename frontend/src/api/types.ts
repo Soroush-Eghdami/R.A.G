@@ -1,4 +1,4 @@
-/** Shapes the backend sends back. */
+/** API response types. */
 
 export type ModelKind = "chat" | "embedding";
 
@@ -17,15 +17,19 @@ export type ModelInfo = {
 export type ModelsResponse = {
   chat: ModelInfo[];
   embedding: ModelInfo[];
-  cloud_hidden: number;
-  base_url: string;
+  chat_base_url: string;
+  embedding_base_url: string;
 };
 
 export type Health = {
   status: "ok" | "degraded";
-  ollama: {
+  chat: {
     reachable: boolean;
-    version: string | null;
+    base_url: string;
+    error: string | null;
+  };
+  embedding: {
+    reachable: boolean;
     base_url: string;
     error: string | null;
   };
@@ -67,7 +71,9 @@ export type AppSettings = {
   top_k: number;
   temperature: number;
   num_ctx: number;
-  ollama_base_url: string;
+  llama_cpp_chat_base_url: string;
+  llama_cpp_embedding_base_url: string;
+  max_num_ctx: number;
   updated_at: string;
 };
 

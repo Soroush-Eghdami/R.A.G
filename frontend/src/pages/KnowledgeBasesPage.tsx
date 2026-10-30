@@ -48,8 +48,7 @@ export default function KnowledgeBasesPage() {
 
       {models.isError ? (
         <Banner tone="warn">
-          Ollama is not reachable, so new knowledge bases can't pick an embedding model.
-          Start it and refresh.
+          Model configuration could not be loaded. Check the backend and llama.cpp setup.
         </Banner>
       ) : null}
 

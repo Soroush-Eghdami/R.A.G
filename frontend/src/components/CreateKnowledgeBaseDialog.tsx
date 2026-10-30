@@ -27,7 +27,7 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
     if (dialog && !dialog.open) dialog.showModal();
   }, [open]);
 
-  // Pick a sensible default once the model list arrives.
+  // Select a default when models load.
   useEffect(() => {
     if (model || embeddingModels.length === 0) return;
     const match = embeddingModels.find((item) => item.name === preferred);
@@ -89,9 +89,9 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
 
         {models.isError ? (
           <Banner tone="warn">
-            Can't list embedding models. Is Ollama running? Pull one with{" "}
+            Can't load model configuration. Check your llama.cpp setup and start the embedding server with{" "}
             <code className="rounded bg-app px-1.5 py-0.5 font-mono text-xs">
-              ollama pull nomic-embed-text
+              .\scripts\start-llama.ps1 -Mode embedding
             </code>
             .
           </Banner>

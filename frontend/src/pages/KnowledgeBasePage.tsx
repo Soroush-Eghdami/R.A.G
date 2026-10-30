@@ -60,7 +60,7 @@ export default function KnowledgeBasePage() {
     queryKey: ["docs", id],
     queryFn: () => listDocuments(id),
     enabled: Boolean(id),
-    // Keep polling while the worker is chewing on something.
+    // Keep polling while files are processing.
     refetchInterval: (query) =>
       query.state.data?.some(
         (doc) => doc.status === "pending" || doc.status === "processing",

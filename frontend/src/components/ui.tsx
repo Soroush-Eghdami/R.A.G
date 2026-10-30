@@ -5,7 +5,7 @@ type Variant = "primary" | "subtle" | "danger" | "ghost";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-primary text-white shadow-sm shadow-primary/25 hover:bg-primary-hover disabled:bg-primary/40 disabled:shadow-none",
+    "bg-gradient-to-br from-primary to-primary-hover text-on-primary shadow-md shadow-primary/15 hover:brightness-105 disabled:from-primary/50 disabled:to-primary/50 disabled:shadow-none",
   subtle: "bg-elevated text-ink hover:bg-line disabled:text-muted",
   danger:
     "bg-danger/10 text-danger ring-1 ring-inset ring-danger/25 hover:bg-danger/15 disabled:opacity-50",
@@ -41,7 +41,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "rounded-2xl border border-line bg-surface p-5 shadow-sm",
+        "rounded-2xl border border-line bg-surface/90 p-5 shadow-[0_8px_30px_-20px_rgb(0_0_0_/_0.3)] backdrop-blur-sm",
         className,
       )}
     >

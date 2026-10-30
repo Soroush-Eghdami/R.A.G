@@ -56,7 +56,7 @@ function remember(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
   } catch {
-    // Storage is optional.
+    // Browser storage may be unavailable.
   }
 }
 
@@ -104,7 +104,7 @@ export default function ChatPage() {
     enabled: Boolean(conversationId),
   });
 
-  // Pick a knowledge base the first time, and honour a link to another one.
+  // Use the linked knowledge base, or choose the first one.
   useEffect(() => {
     if (!kbs.data || kbs.data.length === 0) return;
     if (conversation.data?.knowledge_base) {
@@ -121,7 +121,7 @@ export default function ChatPage() {
     if (kbId) remember(KB_KEY, kbId);
   }, [kbId]);
 
-  // Default chat model: app setting if installed, otherwise the first one.
+  // Use the configured model, or the first available one.
   useEffect(() => {
     if (model || !models.data) return;
     const preferred = settings.data?.default_chat_model ?? "";
@@ -133,7 +133,7 @@ export default function ChatPage() {
     if (model) remember(MODEL_KEY, model);
   }, [model]);
 
-  // Follow the conversation the URL points at.
+  // Load the conversation from the URL.
   useEffect(() => {
     if (conversationId) {
       if (conversation.data?.id === conversationId) {
@@ -303,7 +303,7 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
+    <div className="flex h-[calc(100dvh-7.5rem)] min-h-[28rem] overflow-hidden rounded-3xl border border-line bg-surface/90 shadow-[0_20px_60px_-35px_rgb(0_0_0_/_0.5)] backdrop-blur-sm md:h-[calc(100dvh-7rem)]">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-app/50 lg:flex">
         <div className="space-y-2 p-3">
           <p className="px-1 text-[11px] font-medium tracking-wide text-muted uppercase">
@@ -436,7 +436,7 @@ export default function ChatPage() {
                 action={
                   <Link
                     to="/kb"
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-sm font-medium text-white shadow-sm shadow-primary/25 transition hover:bg-primary-hover"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-sm font-medium text-on-primary shadow-sm shadow-primary/25 transition hover:bg-primary-hover"
                   >
                     Go to knowledge bases
                   </Link>
