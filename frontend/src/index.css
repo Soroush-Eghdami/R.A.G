@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+/* Theme tokens keep both modes in sync. */
+@theme inline {
+  --color-app: var(--tone-app);
+  --color-surface: var(--tone-surface);
+  --color-elevated: var(--tone-elevated);
+  --color-sidebar: var(--tone-sidebar);
+  --color-chat: var(--tone-chat);
+  --color-line: var(--tone-line);
+  --color-ink: var(--tone-ink);
+  --color-ink-soft: var(--tone-ink-soft);
+  --color-muted: var(--tone-muted);
+  --color-primary: var(--tone-primary);
+  --color-primary-hover: var(--tone-primary-hover);
+  --color-on-primary: var(--tone-on-primary);
+  --color-primary-soft: var(--tone-primary-soft);
+  --color-accent: var(--tone-accent);
+  --color-success: var(--tone-success);
+  --color-warning: var(--tone-warning);
+  --color-danger: var(--tone-danger);
+  --font-sans: Inter, "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --tone-app: #f1f4f9;
+  --tone-surface: #fbfcff;
+  --tone-elevated: #e8edf5;
+  --tone-sidebar: #e9edf5;
+  --tone-chat: #fbfcff;
+  --tone-line: #d5ddec;
+  --tone-ink: #263247;
+  --tone-ink-soft: #52627d;
+  --tone-muted: #71809a;
+  --tone-primary: #5279cf;
+  --tone-primary-hover: #4268bd;
+  --tone-on-primary: #ffffff;
+  --tone-primary-soft: #e2eafb;
+  --tone-accent: #168ba5;
+  --tone-success: #4774c3;
+  --tone-warning: #a56d24;
+  --tone-danger: #b65062;
+  color-scheme: light;
+}
+
+.dark {
+  --tone-app: #1a1b26;
+  --tone-surface: #1f2335;
+  --tone-elevated: #292e42;
+  --tone-sidebar: #1f2335;
+  --tone-chat: #1a1b26;
+  --tone-line: #3b4261;
+  --tone-ink: #c0caf5;
+  --tone-ink-soft: #a9b1d6;
+  --tone-muted: #7982a9;
+  --tone-primary: #7aa2f7;
+  --tone-primary-hover: #89b4fa;
+  --tone-on-primary: #1a1b26;
+  --tone-primary-soft: #292e42;
+  --tone-accent: #7dcfff;
+  --tone-success: #7aa2f7;
+  --tone-warning: #e0af68;
+  --tone-danger: #f7768e;
+  color-scheme: dark;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 88% 0%, color-mix(in srgb, var(--tone-primary) 5%, transparent), transparent 42rem),
+    var(--tone-app);
+  color: var(--tone-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  color: var(--tone-ink);
+  background: color-mix(in oklab, var(--tone-primary) 25%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tone-line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--tone-line);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+dialog::backdrop {
+  background: rgb(26 27 38 / 0.62);
+  backdrop-filter: blur(5px);
+}
+
+button,
+select,
+textarea,
+input {
+  font: inherit;
+}
+
+select option {
+  background-color: var(--tone-surface);
+  color: var(--tone-ink);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tone-primary) 75%, transparent);
+  outline-offset: 2px;
+}
+
+.markdown pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.markdown > * + * {
+  margin-top: 0.75rem;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 170ms ease-out;
+}
+
+.animate-rise {
+  animation: rise 200ms ease-out;
+}
+
+.app-sidebar {
+  background: color-mix(in srgb, var(--tone-sidebar) 94%, transparent);
+}
+
+.chat-workspace {
+  background: var(--tone-chat);
+}
+
+.subtle-grid {
+  background-image: radial-gradient(color-mix(in srgb, var(--tone-line) 75%, transparent) 0.7px, transparent 0.7px);
+  background-size: 15px 15px;
+}
+
+.panel-backdrop {
+  left: min(82vw, 300px);
+  background: color-mix(in srgb, #1a1b26 36%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

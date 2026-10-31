@@ -1,318 +1,153 @@
-# ⚖️ Smart RAG for Law Students
+# Local RAG
 
-A specialized Retrieval-Augmented Generation (RAG) system designed for law students to ask questions and get comprehensive answers from their legal knowledge base. Built with Python 3.13.3, Ollama (Llama3), and ChromaDB.
+Your documents, your models, your machine. A local-first retrieval-augmented
+generation app with a Django API, React UI, Chroma vector store, and llama.cpp
+for both chat and embeddings.
 
-[![Python 3.13.3](https://img.shields.io/badge/python-3.13.3-blue.svg)](https://www.python.org/downloads/)
-[![Ollama](https://img.shields.io/badge/ollama-llama3-green.svg)](https://ollama.ai/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+## What it does
 
-## 🚀 Quick Start
+- Index PDF, Word, Markdown, and plain-text files in separate knowledge bases.
+- Answer questions with streamed responses and clickable source citations.
+- Rewrite follow-up questions before retrieval.
+- Choose the configured chat/embedding model aliases and tune RAG defaults.
+- Keep documents, chats, embeddings, and inference on your machine.
 
-### Prerequisites
-- **Python 3.13.3** or higher
-- **Ollama** installed and running
-- **Required Ollama models**: `llama3:8b` and `all-minilm:latest`
+## Stack
 
-### Installation
+| Layer | Technology |
+|---|---|
+| Backend | Django 5.2 + Django REST Framework |
+| RAG engine | Framework-free Python package |
+| Chat + embeddings | llama.cpp OpenAI-compatible servers |
+| Models | Qwen3.5 9B Q4_K_M; Nomic Embed Text v1.5 Q4_K_M |
+| Vector store | Chroma, cosine similarity |
+| Frontend | React + Vite + TanStack Query + Tailwind CSS |
+| Metadata | SQLite |
 
-1. **Clone the repository**:
-   ```bash
-   git clone git@github.com:Soroush-Eghdami/R.A.G.git
-   cd R.A.G
-   ```
+## Requirements
 
-2. **Setup virtual environment**:
-   ```bash
-   python -m venv venv
-   # Windows
-   venv\Scripts\activate
-   # Linux/Mac
-   source venv/bin/activate
-   ```
+- Python 3.13
+- Node.js 22+
+- A Vulkan-enabled `llama-server` build
+- The GGUF files below, or equivalent files with the configured model aliases:
 
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Install Ollama models**:
-   ```bash
-   ollama pull llama3:8b
-   ollama pull all-minilm:latest
-   ```
-
-5. **Create necessary directories**:
-   ```bash
-   mkdir -p data/raw logs
-   ```
-
-## ✅ **System Status: FULLY WORKING!**
-
-Your RAG system is now fully functional with both CLI and Web UI modes! The system has been tested and verified to work correctly.
-
-## 📖 Usage
-
-### 🎯 Quick Start
-
-1. **Add your legal documents** to `data/raw/` directory
-2. **Ingest the documents** using: `python main.py --ingest-dir "data/raw"`
-3. **Start asking questions** via CLI or Web UI
-
-### 💻 Command Line Interface
-
-**Quick Examples:**
-```bash
-# Interactive mode (recommended) - with model selection
-python main.py --interactive --select-model
-
-# Ask a single question
-python main.py --question "What are the key elements of a valid contract?"
-
-# Ingest documents with model selection
-python main.py --ingest-file "data/raw/document.docx" --select-embedding
-python main.py --ingest-dir "data/raw" --select-embedding
-
-# Specify models directly
-python main.py --ingest-file "data/raw/document.docx" \
-  --embedding-model "paraphrase-multilingual-MiniLM-L12-v2" \
-  --embedding-provider "sentence-transformers" \
-  --model "llama3.1:8b"
+```text
+C:\Users\sorou\.lmstudio\models\lmstudio-community\
+  Qwen3.5-9B-GGUF\Qwen3.5-9B-Q4_K_M.gguf
+  nomic-embed-text-v1.5-GGUF\nomic-embed-text-v1.5.Q4_K_M.gguf
 ```
 
-### 🌐 Web Interface
+The launch script uses the detected Vulkan device `Vulkan0` and attempts to
+offload 99 layers. For this integrated GPU, model weights, context cache, and
+other applications share system memory; lower `-GpuLayers` or `-ContextSize`
+if memory pressure causes slowdowns or allocation errors.
 
-**Modern HTML/CSS/JS Interface (Recommended):**
+## Start the model servers
 
-1. **Start the API server**:
-   ```bash
-   python api.py
-   ```
-   The API will be available at `http://localhost:8000`
+Copy the environment template and set a Django secret. If your GGUF files live
+somewhere else, pass the directory with `-ModelDirectory` when starting either
+server:
 
-2. **Start the web UI** (in another terminal):
-   ```bash
-   cd web_ui
-   python server.py
-   ```
-
-3. **Open your browser** to `http://localhost:8080`
-
-**Features:**
-- Dark/light mode toggle
-- Real-time chat interface
-- Document upload support
-- Model selection (LLM and embedding models)
-- Database management (clear database)
-- System settings
-- Connection status indicator
-
-### 📚 Example Questions
-
-- "What are the elements of negligence in tort law?"
-- "Explain the difference between civil and criminal law"
-- "What is the statute of limitations for contract disputes?"
-- "How does the burden of proof work in criminal cases?"
-
-## ✨ Features
-
-### 🎓 Law Student Focused
-- **Specialized prompts** for legal questions and case analysis
-- **Legal terminology** understanding and explanation
-- **Case law summaries** and legal concept explanations
-- **Academic-friendly** responses with proper citations
-
-### 📚 Document Support
-- **TXT files** - Plain text legal documents
-- **PDF files** - Case studies, legal papers, textbooks
-- **DOCX files** - Word documents and legal briefs
-- **API endpoints** - External legal databases
-
-### 🔍 Smart Retrieval
-- **Vector similarity search** for relevant documents
-- **Topic-based queries** (e.g., "contract law", "tort law")
-- **Case type filtering** (civil, criminal, constitutional)
-- **Relevance ranking** with confidence scores
-
-### 💻 Multiple Interfaces
-- **Command Line** - Fast and efficient for power users
-- **Web Interface** - Modern HTML/CSS/JS interface with Tailwind CSS
-- **REST API** - For integration with other tools
-- **Interactive Mode** - Conversational Q&A experience
-
-## 📁 Project Structure
-
-```
-R.A.G/
-├── data/
-│   └── raw/                # Your legal documents (.txt, .pdf, .docx)
-│                           # Note: chroma_db/ is auto-created (gitignored)
-├── rag/                    # Core RAG components
-│   ├── config.py          # Configuration settings
-│   ├── embedding.py       # Embedding model integration
-│   ├── chunking.py        # Text splitting logic
-│   ├── vectorstore.py     # ChromaDB management
-│   ├── generator.py       # Ollama LLM integration
-│   ├── retriever.py       # Document retrieval
-│   ├── ingestion.py       # Data processing pipeline
-│   ├── loaders/           # File type loaders
-│   │   ├── txt_loader.py
-│   │   ├── pdf_loader.py
-│   │   ├── docx_loader.py
-│   │   └── api_loader.py
-│   └── utils/             # Helper utilities
-│       ├── language_utils.py    # Multilingual support
-│       └── logging_utils.py
-├── web_ui/                 # Modern HTML/CSS/JS interface
-│   ├── index.html         # Main web interface (Tailwind CSS)
-│   ├── script.js          # JavaScript functionality (Alpine.js)
-│   └── server.py          # Local web server
-├── main.py                # CLI interface
-├── api.py                 # FastAPI server (run with: python api.py)
-├── requirements.txt       # Python dependencies
-├── DOCUMENTATION.md       # Technical documentation
-├── .gitignore            # Git ignore rules
-└── README.md             # This file
+```powershell
+Copy-Item .env.example .env
 ```
 
-**Note:** The following are gitignored and not shown in the structure:
-- `venv/` - Virtual environment
-- `data/chroma_db/` - Vector database (auto-created)
-- `logs/` - System logs
-- `__pycache__/` - Python cache files
+In two PowerShell terminals from the repository root, start the chat and
+embedding servers:
 
-## ⚙️ Configuration
-
-### Model Selection
-
-You can select models interactively or via command line:
-
-**Interactive Selection:**
-```bash
-# Select LLM model for querying
-python main.py --interactive --select-model
-
-# Select embedding model for ingestion
-python main.py --ingest-file "data/raw/document.docx" --select-embedding
+```powershell
+.\scripts\start-llama.ps1 -Mode chat
+.\scripts\start-llama.ps1 -Mode embedding
 ```
 
-**Command Line:**
-```bash
-# Specify LLM model
-python main.py --question "..." --model "llama3.1:8b"
+The chat server loads Qwen3.5 9B on `127.0.0.1:8082`. The embedding server loads
+Nomic Embed Text v1.5 on `127.0.0.1:8083` with mean pooling and the model's
+`search_document:` / `search_query:` prefixes. Keep both terminals running.
+If `llama-server` is not on PATH, pass its executable path with `-Server`.
 
-# Specify embedding model
-python main.py --ingest-file "..." \
-  --embedding-model "paraphrase-multilingual-MiniLM-L12-v2" \
-  --embedding-provider "sentence-transformers"
+## Run the application
+
+Backend:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+pip install -r backend\requirements-dev.txt
+python backend\manage.py migrate
+python run.py --backend-only
 ```
 
-**Available Models:**
-- **LLM Models**: `llama3.1:8b` (recommended), `llama3:8b`, `llama3.2:3b`
-- **Embedding Models**: 
-  - Ollama: `all-minilm:latest`, `nomic-embed-text:latest`
-  - Sentence-Transformers: `paraphrase-multilingual-MiniLM-L12-v2` (multilingual, recommended)
+Frontend, in another terminal:
 
-### Configuration File
-
-Edit `rag/config.py` to customize defaults:
-
-```python
-# Model settings
-OLLAMA_MODEL = "llama3.1:8b"                  # Default LLM model
-EMBEDDING_MODEL = "sentence-transformers:paraphrase-multilingual-MiniLM-L12-v2"  # Default embedding
-EMBEDDING_PROVIDER = "sentence-transformers"  # Provider: "ollama" or "sentence-transformers"
-
-# Chunking settings
-CHUNK_SIZE = 500                              # Characters per chunk
-CHUNK_OVERLAP = 50                            # Overlap between chunks
-
-# Retrieval settings
-TOP_K = 3                                     # Documents to retrieve
+```powershell
+cd frontend
+npm install
+npm run dev
 ```
 
-## 🔍 API Usage
+Open http://127.0.0.1:5330. For the one-command dev launcher, run `python run.py`
+without `--backend-only` after installing frontend dependencies.
 
-The system provides a REST API for integration:
+### Docker
 
-```python
-import requests
+Docker Compose runs the UI and backend, while the two llama.cpp servers stay on
+the host. Start both model servers with `-HostAddress 0.0.0.0` so containers can
+reach them through `host.docker.internal`, then run:
 
-# Ask a question
-response = requests.post("http://localhost:8000/query", json={
-    "question": "What is contract law?",
-    "top_k": 3
-})
-print(response.json()["answer"])
-
-# Ingest documents
-response = requests.post("http://localhost:8000/ingest", json={
-    "source_type": "directory",
-    "source_path": "/path/to/documents"
-})
+```powershell
+docker compose up --build
 ```
 
-## 🛠️ Troubleshooting
+Binding the model servers to `0.0.0.0` can expose them to your local network.
+Only use that option on a trusted network and apply appropriate firewall rules.
+The default script binding is loopback-only.
 
-### Common Issues
+## First use
 
-1. **"Ollama not running"**:
-   ```bash
-   ollama serve
-   ```
+1. Create a knowledge base, selecting the configured Nomic embedding model.
+2. Upload documents and wait for each status to become **Ready**.
+3. Start a chat and ask questions; click citations to inspect their passages.
+4. Tune context size, temperature, and retrieval count in **Settings**.
 
-2. **"Model not found"**:
-   ```bash
-   ollama pull llama3:8b
-   ollama pull all-minilm:latest
-   ```
+**Existing indexes:** embeddings made with an older Ollama model are not
+compatible with Nomic Embed Text v1.5. Create a new knowledge base and re-upload
+the original documents before querying with this configuration. Keep your
+existing data directory until you have verified the new index.
 
-3. **"No documents found"**:
-   - Check if documents are in `data/raw/`
-   - Run ingestion: `python main.py --ingest-dir data/raw`
+## Configuration
 
-4. **Memory issues**:
-   - Reduce `CHUNK_SIZE` in config
-   - Process documents in smaller batches
+Runtime settings come from `.env`:
 
-### Performance Tips
+| Variable | Default | Purpose |
+|---|---|---|
+| `LLAMA_CPP_CHAT_BASE_URL` | `http://127.0.0.1:8082` | Chat server |
+| `LLAMA_CPP_EMBEDDING_BASE_URL` | `http://127.0.0.1:8083` | Embedding server |
+| `LLAMA_CPP_CHAT_MODEL` | `Qwen3.5-9B` | Chat server alias (`--alias`) |
+| `LLAMA_CPP_EMBEDDING_MODEL` | `nomic-embed-text-v1.5` | Embedding alias (`--alias`) |
+| `LLAMA_CPP_CONNECT_TIMEOUT` | `5` | Connect timeout in seconds |
+| `LLAMA_CPP_REQUEST_TIMEOUT` | `600` | Model request timeout in seconds |
+| `LLAMA_CPP_CONTEXT_SIZE` | `0` | Server context limit; `0` lets llama.cpp use the model's context |
+| `DEFAULT_TOP_K` | `4` | Retrieved passages |
+| `DEFAULT_TEMPERATURE` | `0.2` | Generation temperature |
+| `DEFAULT_NUM_CTX` | `0` | App prompt budget; `0` uses the full context reported by llama.cpp |
+| `MAX_UPLOAD_SIZE_MB` | `50` | Upload limit |
 
-- Use GPU acceleration for Ollama if available
-- Adjust chunk size based on document type
-- Monitor memory usage during large ingestions
-- Use batch processing for multiple documents
+`SECRET_KEY` is required; replace the example value before use.
 
-## 📋 Requirements
+## API and tests
 
-- **Python 3.13.3** or higher
-- **Ollama** with `llama3:8b` and `all-minilm:latest` models
-- **ChromaDB** for vector storage
-- **FastAPI** for web API
+API docs: http://127.0.0.1:8000/api/docs/ · schema:
+http://127.0.0.1:8000/api/schema/.
 
-## 🤝 Contributing
+```powershell
+# Backend
+cd backend
+..\venv\Scripts\python.exe -m pytest -q
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+# Frontend
+cd ..\frontend
+npm run test
+npm run build
+```
 
-## 📄 License
-
-This project is designed for educational purposes. Please ensure compliance with all applicable laws and regulations when using for legal research.
-
-## 🆘 Support
-
-For issues and questions:
-1. Check the troubleshooting section above
-2. Review logs in the `logs/` directory
-3. Ensure all dependencies are properly installed
-4. Verify Ollama is running with required models
-
-## 📖 Documentation
-
-- **[DOCUMENTATION.md](DOCUMENTATION.md)** - Technical documentation and architecture details
-
----
-
-**Happy studying! 📚⚖️**
-
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for runtime details and data
+flow.

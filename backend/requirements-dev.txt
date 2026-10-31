@@ -1,0 +1,7 @@
+-r requirements.txt
+
+# Development / test tooling (not needed in the runtime image)
+pytest==9.1.1
+pytest-django==4.14.0
+respx==0.23.1
+ruff==0.17.2
