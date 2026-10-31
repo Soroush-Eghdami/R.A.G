@@ -7,9 +7,10 @@ from typing import Any, Iterable, Iterator, Sequence
 from django.conf import settings
 from django.utils import timezone
 from kb.models import KnowledgeBase
-from kb.services import build_client, build_embedder, build_store, config_for
+from kb.services import build_embedder, build_store, config_for
 from llm.models import AppSettings
-from rag.ollama_client import OllamaClient
+from llm.services import build_chat_client
+from rag.llama_cpp_client import LLMResponseError, LlamaCppClient
 from rag.pipeline import StreamEvent, answer_stream
 from rag.retriever import RetrievalConfig
 from rag.vectorstore import RetrievedChunk, VectorStore
@@ -17,9 +18,9 @@ from rag.vectorstore import RetrievedChunk, VectorStore
 from .models import Conversation, Message
 
 
-def build_runtime(kb: KnowledgeBase) -> tuple[OllamaClient, VectorStore, Any]:
+def build_runtime(kb: KnowledgeBase) -> tuple[LlamaCppClient, VectorStore, Any]:
     """Client, vector store and embedder for one knowledge base."""
-    client = build_client()
+    client = build_chat_client()
     return client, build_store(), build_embedder(kb.embedding_model)
 
 
@@ -31,6 +32,7 @@ def citation(chunk: RetrievedChunk, number: int) -> dict[str, Any]:
         "page": chunk.page,
         "distance": round(chunk.distance, 4),
         "snippet": chunk.text[:300],
+        "text": chunk.text,
     }
 
 
@@ -65,11 +67,13 @@ def pipeline_options(
 ) -> dict[str, Any]:
     """App defaults plus per-request overrides."""
     defaults = AppSettings.load()
+    requested_context = data.get("num_ctx")
     return {
         "history": list(history),
-        "num_ctx": data.get("num_ctx") or defaults.num_ctx,
+        "num_ctx": defaults.num_ctx if requested_context is None else requested_context,
         "temperature": defaults.temperature,
         "think": data.get("think", settings.DEFAULT_THINK),
+        "answer_length": data.get("answer_length", "balanced"),
         "rewrite_followups": settings.REWRITE_FOLLOWUPS,
         "retrieval": RetrievalConfig(top_k=data.get("top_k") or defaults.top_k),
     }
@@ -83,6 +87,16 @@ def stream_answer(
 ) -> Iterator[StreamEvent]:
     """Run the pipeline for a conversation."""
     client, store, embedder = build_runtime(conversation.knowledge_base)
+    requested_context = options.get("num_ctx", 0)
+    if requested_context == 0 or settings.LLAMA_CPP_CONTEXT_SIZE == 0:
+        active_context = client.context_size()
+        if requested_context == 0:
+            options = {**options, "num_ctx": active_context}
+        elif requested_context > active_context:
+            raise LLMResponseError(
+                f"The selected context limit ({requested_context}) exceeds the "
+                f"loaded model context ({active_context})."
+            )
     yield from answer_stream(
         question,
         config_for(conversation.knowledge_base),

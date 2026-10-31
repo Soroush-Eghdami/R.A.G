@@ -11,8 +11,7 @@ from .vectorstore import RetrievedChunk, VectorStore
 @dataclass(frozen=True, slots=True)
 class RetrievalConfig:
     top_k: int = 4
-    # Loose guard only. On a small corpus nomic scores valid questions up to
-    # ~0.45 and off-topic ones from ~0.45, so the prompt does the real work.
+    # Keep this threshold loose; the prompt handles off-topic matches.
     max_distance: float | None = 0.65
 
 

@@ -17,7 +17,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class ConversationSerializer(serializers.ModelSerializer):
-    # Optional: falls back to AppSettings, then to DEFAULT_CHAT_MODEL.
+    # Falls back to the configured default when empty.
     chat_model = serializers.CharField(required=False, allow_blank=True)
     messages = MessageSerializer(many=True, read_only=True)
     message_count = serializers.SerializerMethodField()
@@ -54,6 +54,9 @@ class AskSerializer(serializers.Serializer):
     question = serializers.CharField(max_length=8000, trim_whitespace=True)
     stream = serializers.BooleanField(default=True, required=False)
     think = serializers.BooleanField(default=False, required=False)
+    answer_length = serializers.ChoiceField(
+        choices=["short", "balanced", "detailed"], default="balanced", required=False
+    )
     top_k = serializers.IntegerField(min_value=1, max_value=20, required=False)
     num_ctx = serializers.IntegerField(min_value=512, max_value=131072, required=False)
 

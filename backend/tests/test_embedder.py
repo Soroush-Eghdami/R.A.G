@@ -1,10 +1,10 @@
-"""Embedder tests, no Ollama needed."""
+"""llama.cpp embedder tests."""
 
 from __future__ import annotations
 
 import pytest
-from rag.embedder import OllamaEmbedder, prefixes_for
-from rag.ollama_client import OllamaResponseError
+from rag.embedder import LlamaCppEmbedder, prefixes_for
+from rag.llama_cpp_client import LLMResponseError
 
 
 class FakeClient:
@@ -29,7 +29,7 @@ def test_unknown_model_has_no_prefixes():
 
 def test_documents_are_batched_and_prefixed():
     client = FakeClient()
-    embedder = OllamaEmbedder(client, "nomic-embed-text:latest", batch_size=2)
+    embedder = LlamaCppEmbedder(client, "nomic-embed-text-v1.5", batch_size=2)
     vectors = embedder.embed_documents(["one", "two", "three"])
 
     assert len(vectors) == 3
@@ -39,14 +39,14 @@ def test_documents_are_batched_and_prefixed():
 
 def test_query_uses_query_prefix():
     client = FakeClient()
-    embedder = OllamaEmbedder(client, "nomic-embed-text:latest")
+    embedder = LlamaCppEmbedder(client, "nomic-embed-text-v1.5")
     embedder.embed_query("why?")
     assert client.calls[0][1] == ["search_query: why?"]
 
 
 def test_empty_document_list_skips_http():
     client = FakeClient()
-    assert OllamaEmbedder(client, "m").embed_documents([]) == []
+    assert LlamaCppEmbedder(client, "m").embed_documents([]) == []
     assert client.calls == []
 
 
@@ -55,6 +55,6 @@ def test_mismatched_vector_count_raises():
         def embed(self, model, texts):
             return [[0.1]]
 
-    embedder = OllamaEmbedder(ShortClient(), "m")
-    with pytest.raises(OllamaResponseError):
+    embedder = LlamaCppEmbedder(ShortClient(), "m")
+    with pytest.raises(LLMResponseError):
         embedder.embed_documents(["a", "b"])

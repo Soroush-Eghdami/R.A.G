@@ -6,7 +6,7 @@ class KbConfig(AppConfig):
     name = "kb"
 
     def ready(self) -> None:
-        # Run once on the first request, not at import time (no DB at startup).
+        # Run on the first request, when the database is ready.
         from django.core.signals import request_started
         from django.db.backends.signals import connection_created
 

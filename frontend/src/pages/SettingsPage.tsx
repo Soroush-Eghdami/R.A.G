@@ -17,7 +17,7 @@ import {
   inputClass,
 } from "../components/ui";
 
-const CONTEXT_SIZES = [2048, 4096, 8192, 16384, 32768];
+const CONTEXT_SIZES = [2048, 4096, 8192, 16384, 32768, 65536, 131072];
 
 function ModelSelect({
   value,
@@ -104,11 +104,22 @@ export default function SettingsPage() {
     setSaved(false);
   };
 
-  const online = health.data?.ollama.reachable ?? false;
+  const chatOnline = health.data?.chat.reachable ?? false;
+  const embeddingOnline = health.data?.embedding.reachable ?? false;
   const dbOk = health.data?.database.ok ?? false;
+  const maxContextSize = form?.max_num_ctx ?? 0;
+  const contextSizes = [
+    ...new Set([
+      0,
+      ...CONTEXT_SIZES.filter(
+        (size) => maxContextSize === 0 || size <= maxContextSize,
+      ),
+      ...(form ? [form.num_ctx] : []),
+    ]),
+  ].sort((a, b) => a - b);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 md:px-3 md:py-3">
       <PageHeader
         title="Settings"
         subtitle="Connection status and the defaults new chats start from."
@@ -117,8 +128,8 @@ export default function SettingsPage() {
       <Card className="space-y-4">
         <SectionHead
           icon={<DatabaseIcon className="size-[18px]" />}
-          title="Ollama"
-          hint="The model server running on this machine."
+          title="llama.cpp"
+          hint="Local chat and embedding model servers."
           action={
             <Button
               onClick={() => {
@@ -135,7 +146,7 @@ export default function SettingsPage() {
           <span
             className={cx(
               "inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset",
-              online
+              chatOnline
                 ? "bg-success/10 text-success ring-success/25"
                 : "bg-danger/10 text-danger ring-danger/25",
             )}
@@ -143,23 +154,31 @@ export default function SettingsPage() {
             <span
               className={cx(
                 "size-1.5 rounded-full",
-                online ? "bg-success" : "bg-danger",
+                chatOnline ? "bg-success" : "bg-danger",
               )}
             />
-            {online ? "reachable" : "offline"}
+            Chat {chatOnline ? "reachable" : "offline"}
           </span>
-          {health.data?.ollama.version ? (
-            <Badge>v{health.data.ollama.version}</Badge>
-          ) : null}
+          <Badge tone={embeddingOnline ? "ok" : "bad"}>
+            Embeddings {embeddingOnline ? "reachable" : "offline"}
+          </Badge>
           <Badge tone={dbOk ? "ok" : "bad"}>database {dbOk ? "ok" : "down"}</Badge>
         </div>
 
-        <p className="rounded-xl border border-line bg-app/50 px-3 py-2 font-mono text-xs break-all text-muted">
-          {health.data?.ollama.base_url ?? "…"}
-        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <p className="rounded-xl border border-line bg-app/50 px-3 py-2 font-mono text-xs break-all text-muted">
+            Chat · {health.data?.chat.base_url ?? "…"}
+          </p>
+          <p className="rounded-xl border border-line bg-app/50 px-3 py-2 font-mono text-xs break-all text-muted">
+            Embeddings · {health.data?.embedding.base_url ?? "…"}
+          </p>
+        </div>
 
-        {!online && health.data?.ollama.error ? (
-          <Banner tone="warn">{health.data.ollama.error}</Banner>
+        {!chatOnline && health.data?.chat.error ? (
+          <Banner tone="warn">{health.data.chat.error}</Banner>
+        ) : null}
+        {!embeddingOnline && health.data?.embedding.error ? (
+          <Banner tone="warn">{health.data.embedding.error}</Banner>
         ) : null}
 
         {models.data ? (
@@ -167,9 +186,6 @@ export default function SettingsPage() {
             {models.data.chat.length} chat model{models.data.chat.length === 1 ? "" : "s"},{" "}
             {models.data.embedding.length} embedding model
             {models.data.embedding.length === 1 ? "" : "s"}
-            {models.data.cloud_hidden > 0
-              ? ` · ${models.data.cloud_hidden} cloud model(s) hidden`
-              : ""}
           </p>
         ) : null}
       </Card>
@@ -260,15 +276,20 @@ export default function SettingsPage() {
                 />
               </Field>
 
-              <Field label="Context window" hint="Tokens the model can see at once.">
+              <Field
+                label="Context window"
+                hint="Use the model's full context or choose a smaller limit. Larger windows use more memory."
+              >
                 <select
                   className={inputClass}
                   value={form.num_ctx}
                   onChange={(event) => update("num_ctx", Number(event.target.value))}
                 >
-                  {CONTEXT_SIZES.map((size) => (
+                  {contextSizes.map((size) => (
                     <option key={size} value={size}>
-                      {size.toLocaleString()}
+                      {size === 0
+                        ? "Full model context"
+                        : `${size.toLocaleString()}${maxContextSize > 0 && size > maxContextSize ? " · above server limit" : ""}`}
                     </option>
                   ))}
                 </select>

@@ -22,12 +22,17 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
   const preferred = settings.data?.default_embedding_model ?? "";
 
   useEffect(() => {
-    if (!open) return;
     const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
+    if (!dialog) return;
+
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
   }, [open]);
 
-  // Pick a sensible default once the model list arrives.
+  // Select a default when models load.
   useEffect(() => {
     if (model || embeddingModels.length === 0) return;
     const match = embeddingModels.find((item) => item.name === preferred);
@@ -48,7 +53,7 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
       setError(err instanceof ApiError ? err.message : "Something went wrong."),
   });
 
-  const close = () => {
+  const dismiss = () => {
     setError(null);
     onClose();
   };
@@ -56,12 +61,15 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
   return (
     <dialog
       ref={dialogRef}
-      onClose={close}
-      onCancel={close}
-      className="w-full max-w-lg rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl"
+      onClose={() => setError(null)}
+      onCancel={(event) => {
+        event.preventDefault();
+        dismiss();
+      }}
+      className="fixed left-1/2 top-1/2 m-0 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-line bg-surface p-0 text-ink shadow-2xl"
     >
       <form
-        className="space-y-5 p-6"
+        className="space-y-5 p-7"
         onSubmit={(event) => {
           event.preventDefault();
           if (!model) {
@@ -80,7 +88,7 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
               One collection of documents you can ask questions about.
             </p>
           </div>
-          <Button type="button" variant="ghost" className="px-2" onClick={close} aria-label="Close">
+          <Button type="button" variant="ghost" className="px-2" onClick={dismiss} aria-label="Close">
             <CloseIcon />
           </Button>
         </div>
@@ -89,9 +97,9 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
 
         {models.isError ? (
           <Banner tone="warn">
-            Can't list embedding models. Is Ollama running? Pull one with{" "}
+            Can't load model configuration. Check your llama.cpp setup and start the embedding server with{" "}
             <code className="rounded bg-app px-1.5 py-0.5 font-mono text-xs">
-              ollama pull nomic-embed-text
+              .\scripts\start-llama.ps1 -Mode embedding
             </code>
             .
           </Banner>
@@ -142,7 +150,7 @@ export default function CreateKnowledgeBaseDialog({ open, onClose }: Props) {
         </Field>
 
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          <Button type="button" variant="ghost" onClick={close}>
+          <Button type="button" variant="ghost" onClick={dismiss}>
             Cancel
           </Button>
           <Button type="submit" variant="primary" disabled={create.isPending || !name.trim()}>

@@ -1,7 +1,8 @@
-/** Every request goes through here. */
+/** Send API requests through this helper. */
 
 import type {
   AppSettings,
+  AnswerLength,
   Conversation,
   CreateKnowledgeBase,
   Document,
@@ -26,7 +27,7 @@ export class ApiError extends Error {
   }
 }
 
-/** Turn DRF field errors into one readable sentence. */
+/** Convert field errors into one readable message. */
 function describe(body: unknown, fallback: string): string {
   if (!body || typeof body !== "object") return fallback;
   const record = body as Record<string, unknown>;
@@ -63,7 +64,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     try {
       body = await response.json();
     } catch {
-      // Not JSON, keep the generic message.
+      // Use the generic message for non-JSON errors.
     }
     const code =
       body && typeof body === "object"
@@ -80,7 +81,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
-/* ------------------------------------------------------------------ system */
+// System.
 
 export const getHealth = () => request<Health>("/health/");
 
@@ -95,7 +96,7 @@ export const updateSettings = (patch: Partial<AppSettings>) =>
     body: JSON.stringify(patch),
   });
 
-/* --------------------------------------------------------- knowledge bases */
+// Knowledge bases.
 
 export const listKnowledgeBases = () => request<KnowledgeBase[]>("/knowledge-bases/");
 
@@ -111,7 +112,7 @@ export const createKnowledgeBase = (body: CreateKnowledgeBase) =>
 export const deleteKnowledgeBase = (id: string) =>
   request<void>(`/knowledge-bases/${id}/`, { method: "DELETE" });
 
-/* ---------------------------------------------------------------- documents */
+// Documents.
 
 export const listDocuments = (knowledgeBaseId: string) =>
   request<Document[]>(`/documents/?knowledge_base=${knowledgeBaseId}`);
@@ -126,7 +127,7 @@ export const uploadDocument = (knowledgeBaseId: string, file: File) => {
 export const deleteDocument = (id: string) =>
   request<void>(`/documents/${id}/`, { method: "DELETE" });
 
-/* ------------------------------------------------------------ conversations */
+// Conversations.
 
 export const listConversations = (knowledgeBaseId?: string) =>
   request<Conversation[]>(
@@ -151,7 +152,7 @@ export const updateConversation = (id: string, patch: Record<string, unknown>) =
 export const deleteConversation = (id: string) =>
   request<void>(`/conversations/${id}/`, { method: "DELETE" });
 
-/** Non-streaming answer, handy for scripts and tests. */
+/** Get a non-streaming answer. */
 export const ask = (conversationId: string, question: string) =>
   request<{ message: Message; sources: Source[]; rewritten: string | null }>(
     `/conversations/${conversationId}/messages/`,
@@ -161,7 +162,7 @@ export const ask = (conversationId: string, question: string) =>
     },
   );
 
-/* ---------------------------------------------------------------- streaming */
+// Streaming.
 
 export type StreamEvent =
   | { type: "query"; original: string; query: string }
@@ -171,7 +172,7 @@ export type StreamEvent =
   | { type: "done"; messageId: number | null }
   | { type: "error"; detail: string; code: string };
 
-/** One SSE block: 'event: token' plus one or more 'data:' lines. */
+/** Parse one SSE block. */
 export function parseEvent(block: string): StreamEvent | null {
   let name = "";
   const data: string[] = [];
@@ -222,16 +223,21 @@ type StreamHandlers = {
   signal?: AbortSignal;
 };
 
-/** Ask a question and feed events to the caller as they arrive. */
+/** Stream answer events to the caller. */
 export async function streamAnswer(
   conversationId: string,
   question: string,
-  { onEvent, signal, think = false }: StreamHandlers & { think?: boolean },
+  {
+    onEvent,
+    signal,
+    think = false,
+    answerLength = "balanced",
+  }: StreamHandlers & { think?: boolean; answerLength?: AnswerLength },
 ): Promise<void> {
   const response = await fetch(`${BASE}/conversations/${conversationId}/messages/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, think }),
+    body: JSON.stringify({ question, think, answer_length: answerLength }),
     signal,
   });
 
@@ -240,7 +246,7 @@ export async function streamAnswer(
     try {
       body = await response.json();
     } catch {
-      // Keep the generic message.
+      // Use the generic message.
     }
     throw new ApiError(
       describe(body, `Request failed (${response.status}).`),

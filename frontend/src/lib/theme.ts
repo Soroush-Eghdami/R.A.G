@@ -15,6 +15,6 @@ export function applyTheme(theme: Theme): void {
   try {
     localStorage.setItem(KEY, theme);
   } catch {
-    // Nothing to do if storage is unavailable.
+    // Browser storage may be unavailable.
   }
 }

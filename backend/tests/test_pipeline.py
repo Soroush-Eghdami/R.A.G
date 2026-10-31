@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from rag.ollama_client import OllamaUnavailable
+from rag.llama_cpp_client import LLMUnavailable
 from rag.pipeline import (
     KnowledgeBaseConfig,
     _tidy_rewrite,
@@ -164,6 +164,25 @@ def test_num_ctx_and_think_are_forwarded(doc, kb, store):
     assert call["think"] is True
 
 
+def test_detailed_answer_uses_remaining_context_and_guidance(doc, kb, store):
+    ingest_document(doc, kb, store=store, embedder=FakeEmbedder())
+    client = FakeClient()
+
+    collect_answer(
+        "What is alpha?",
+        kb,
+        chat_model="fake-chat",
+        client=client,
+        store=store,
+        embedder=FakeEmbedder(),
+        answer_length="detailed",
+    )
+
+    call = client.calls[0]
+    assert call["options"]["max_tokens"] > 1536
+    assert "Give a thorough answer" in call["messages"][0]["content"]
+
+
 def test_old_history_is_dropped_to_fit(doc, kb, store):
     embedder = FakeEmbedder()
     ingest_document(doc, kb, store=store, embedder=embedder)
@@ -276,7 +295,7 @@ def test_failed_rewrite_still_answers(doc, kb, store):
     embedder = FakeEmbedder()
     ingest_document(doc, kb, store=store, embedder=embedder)
     client = FakeClient()
-    client.rewrite_error = OllamaUnavailable("Ollama went away")
+    client.rewrite_error = LLMUnavailable("llama.cpp server went away")
 
     events = list(
         answer_stream(

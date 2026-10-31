@@ -11,7 +11,7 @@ from kb import services as kb_services
 from kb.models import KnowledgeBase
 from llm.models import AppSettings
 from rag.chunking import Chunk
-from rag.ollama_client import OllamaUnavailable
+from rag.llama_cpp_client import LLMUnavailable
 from rag.vectorstore import VectorStore
 
 pytestmark = pytest.mark.django_db
@@ -34,6 +34,9 @@ class FakeClient:
         self.calls = []
         self.rewrites = []
 
+    def context_size(self):
+        return 8192
+
     def chat(self, model, messages, *, options=None, think=None):
         self.rewrites.append({"model": model, "messages": messages})
         return {"message": {"content": self.rewrite}}
@@ -50,7 +53,7 @@ class FakeClient:
 class FailingClient(FakeClient):
     def chat_stream(self, model, messages, *, options=None, think=None):
         yield {"message": {"content": "half an ans"}}
-        raise OllamaUnavailable("Ollama stopped responding.")
+        raise LLMUnavailable("llama.cpp server stopped responding.")
 
 
 @pytest.fixture(autouse=True)
@@ -91,7 +94,7 @@ def runtime(settings, kb, monkeypatch):
         "build_runtime",
         lambda knowledge_base: (client, store, embedder),
     )
-    # The search endpoint builds its own store/embedder.
+    # Search builds its own store and embedder.
     monkeypatch.setattr(kb_services, "build_store", lambda: store)
     monkeypatch.setattr(kb_services, "build_embedder", lambda model: embedder)
     return client, store, embedder
@@ -112,13 +115,14 @@ def test_conversation_uses_default_chat_model(client, kb, settings_row):
     assert response.json()["chat_model"] == "fake-chat"
 
 
-def test_conversation_requires_a_chat_model(client, kb):
+def test_conversation_uses_configured_chat_model_when_not_specified(client, kb):
     response = client.post(
         "/api/conversations/",
         {"knowledge_base": str(kb.id)},
         format="json",
     )
-    assert response.status_code == 400
+    assert response.status_code == 201
+    assert response.json()["chat_model"] == "Qwen3.5-9B"
 
 
 def test_json_answer_is_saved(client, kb, settings_row, runtime):
@@ -133,6 +137,7 @@ def test_json_answer_is_saved(client, kb, settings_row, runtime):
     body = response.json()
     assert body["message"]["content"] == "The answer is 42."
     assert body["sources"][0]["document"] == "alpha.txt"
+    assert body["sources"][0]["text"] == "Alpha is the first letter."
 
     conversation = Conversation.objects.get(pk=conversation_id)
     assert conversation.title == "What is alpha?"
@@ -189,7 +194,7 @@ def test_stream_error_event_keeps_partial_answer(client, kb, settings_row, runti
     )
     raw = b"".join(response.streaming_content).decode("utf-8")
     assert "event: error" in raw
-    assert "ollama_unavailable" in raw
+    assert "llm_unavailable" in raw
 
     saved = Message.objects.get(conversation_id=conversation_id, role=Message.Role.ASSISTANT)
     assert saved.content == "half an ans"
@@ -217,7 +222,39 @@ def test_options_come_from_settings_row(client, kb, settings_row, runtime):
     call = runtime[0].calls[-1]
     assert call["options"]["num_ctx"] == 4096
     assert call["options"]["temperature"] == 0.1
+    assert call["options"]["max_tokens"] == 768
     assert call["think"] is False
+
+
+def test_full_model_context_is_resolved_for_each_request(
+    client, kb, settings_row, runtime
+):
+    settings_row.num_ctx = 0
+    settings_row.save()
+    runtime[0].context_size = lambda: 32768
+    conversation_id = make_conversation(client, kb).json()["id"]
+
+    client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "stream": False},
+        format="json",
+    )
+
+    assert runtime[0].calls[-1]["options"]["num_ctx"] == 32768
+
+
+def test_answer_length_is_forwarded_to_the_model(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    response = client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "stream": False, "answer_length": "detailed"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    call = runtime[0].calls[-1]
+    assert call["options"]["max_tokens"] > 1536
+    assert "Give a thorough answer" in call["messages"][0]["content"]
 
 
 def test_search_returns_chunks_without_calling_the_model(client, kb, runtime):
@@ -271,7 +308,7 @@ def test_follow_up_is_rewritten_before_search(client, kb, settings_row, runtime)
     assert response.status_code == 200
     assert response.json()["rewritten"] == "What are alpha's limits?"
     assert len(runtime[0].rewrites) == 1
-    # The answer still sees the question the user typed.
+    # The answer keeps the original question.
     assert runtime[0].calls[-1]["messages"][-1]["content"] == "And what about it?"
 
 

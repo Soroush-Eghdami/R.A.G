@@ -20,7 +20,7 @@ export default function SourceDrawer({ sources, active, onSelect, onClose }: Pro
         onClick={onClose}
       />
 
-      <aside className="animate-slide-in flex h-full w-full max-w-md flex-col border-l border-line bg-surface shadow-2xl">
+      <aside className="animate-slide-in flex h-full w-full max-w-[440px] flex-col border-l border-line bg-surface shadow-2xl">
         <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
             <p className="text-sm font-semibold text-ink">Sources</p>
@@ -43,18 +43,20 @@ export default function SourceDrawer({ sources, active, onSelect, onClose }: Pro
           {sources.map((source) => {
             const isActive = active === source.n;
             return (
-              <button
+              <article
                 key={source.n}
-                type="button"
-                onClick={() => onSelect(source.n)}
                 className={cx(
-                  "block w-full cursor-pointer rounded-xl border p-3.5 text-left transition",
+                  "rounded-xl border p-3.5 transition",
                   isActive
                     ? "border-accent/50 bg-accent/5"
-                    : "border-line bg-elevated/40 hover:border-primary/40 hover:bg-elevated",
+                    : "border-line bg-elevated/40",
                 )}
               >
-                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onSelect(source.n)}
+                  className="flex w-full cursor-pointer items-center gap-2 text-left"
+                >
                   <span className="grid size-6 shrink-0 place-items-center rounded-md bg-accent/12 text-xs font-semibold text-accent ring-1 ring-inset ring-accent/25">
                     {source.n}
                   </span>
@@ -64,11 +66,22 @@ export default function SourceDrawer({ sources, active, onSelect, onClose }: Pro
                   {source.page !== null ? (
                     <span className="shrink-0 text-xs text-muted">p.{source.page}</span>
                   ) : null}
-                </div>
+                </button>
 
                 <p className="mt-2 line-clamp-5 text-xs leading-relaxed whitespace-pre-wrap text-muted">
                   {source.snippet}
                 </p>
+
+                {source.text ? (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer list-none text-xs font-medium text-primary hover:text-primary-hover">
+                      View full chunk
+                    </summary>
+                    <p className="mt-2 rounded-lg bg-app/70 p-3 text-xs leading-relaxed whitespace-pre-wrap text-ink-soft">
+                      {source.text}
+                    </p>
+                  </details>
+                ) : null}
 
                 <div className="mt-2.5 flex items-center gap-2">
                   <div className="h-1 w-16 overflow-hidden rounded-full bg-line">
@@ -81,13 +94,13 @@ export default function SourceDrawer({ sources, active, onSelect, onClose }: Pro
                     match {(1 - source.distance).toFixed(2)}
                   </span>
                 </div>
-              </button>
+              </article>
             );
           })}
         </div>
 
         <footer className="border-t border-line px-5 py-3 text-xs text-muted">
-          Snippets are the first 300 characters of each passage.
+          Expand a passage to view its full text when available.
         </footer>
       </aside>
     </div>

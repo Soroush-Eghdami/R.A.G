@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: "127.0.0.1",
-    port: 5173,
+    port: 5330,
     strictPort: true,
     // Keeps the browser on one origin, so no CORS in development.
     proxy: {

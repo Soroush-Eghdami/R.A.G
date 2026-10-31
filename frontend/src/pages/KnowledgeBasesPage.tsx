@@ -32,24 +32,42 @@ export default function KnowledgeBasesPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Knowledge bases"
-        subtitle="Upload documents, then ask questions about them."
-        actions={
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <PlusIcon />
-            New knowledge base
-          </Button>
-        }
-      />
+    <div className="mx-auto w-full max-w-6xl space-y-7 px-4 py-6 md:px-3 md:py-3">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <PageHeader
+          title="Your knowledge"
+          subtitle="Bring your documents together. Ask questions and get answers linked to the source."
+        />
+        <Button variant="primary" className="rounded-xl px-4 py-2.5" onClick={() => setCreating(true)}>
+          <PlusIcon />
+          New collection
+        </Button>
+      </div>
+
+      {kbs.data && kbs.data.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-line py-3.5 text-xs text-muted">
+          <span>
+            <strong className="font-semibold text-ink">{kbs.data.length}</strong>{" "}
+            collection{kbs.data.length === 1 ? "" : "s"}
+          </span>
+          <span>
+            <strong className="font-semibold text-ink">
+              {kbs.data.reduce((total, kb) => total + kb.document_count, 0)}
+            </strong>{" "}
+            documents indexed
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-success" />
+            Private and local
+          </span>
+        </div>
+      ) : null}
 
       {error ? <Banner>{error}</Banner> : null}
 
       {models.isError ? (
         <Banner tone="warn">
-          Ollama is not reachable, so new knowledge bases can't pick an embedding model.
-          Start it and refresh.
+          Model configuration could not be loaded. Check the backend and llama.cpp setup.
         </Banner>
       ) : null}
 
@@ -67,11 +85,11 @@ export default function KnowledgeBasesPage() {
         <EmptyState
           icon={<DatabaseIcon className="size-5" />}
           title="No knowledge bases yet"
-          hint="A knowledge base holds the documents you want to ask about. Create one, then drag in a PDF."
+          hint="Create a collection for a project, add your documents, and ask questions with source-backed answers."
           action={
             <Button variant="primary" onClick={() => setCreating(true)}>
               <PlusIcon />
-              Create the first one
+              Create a collection
             </Button>
           }
         />
@@ -81,21 +99,21 @@ export default function KnowledgeBasesPage() {
         {kbs.data?.map((kb) => (
           <Card
             key={kb.id}
-            className="group flex flex-col gap-4 transition hover:border-primary/40 hover:shadow-md"
+            className="group flex min-h-56 flex-col gap-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_14px_35px_-24px_rgb(48_72_120_/_0.24)]"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <span className="grid size-10 shrink-0 place-items-center rounded-[14px] bg-primary-soft text-primary">
                   <LibraryIcon className="size-[18px]" />
                 </span>
                 <div className="min-w-0">
                   <Link
                     to={`/kb/${kb.id}`}
-                    className="block truncate text-base font-semibold text-ink transition group-hover:text-primary"
+                    className="block truncate text-[15px] font-semibold tracking-tight text-ink transition group-hover:text-primary"
                   >
                     {kb.name}
                   </Link>
-                  <p className="line-clamp-2 text-sm text-muted">
+                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
                     {kb.description || "No description"}
                   </p>
                 </div>
@@ -103,19 +121,26 @@ export default function KnowledgeBasesPage() {
               {kb.is_locked ? <Badge tone="info">locked</Badge> : null}
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              <Badge>{kb.document_count} document{kb.document_count === 1 ? "" : "s"}</Badge>
-              <Badge className="max-w-full truncate">{kb.embedding_model}</Badge>
+            <div className="flex items-center gap-2 rounded-xl bg-elevated/65 px-3 py-2.5">
+              <span className="grid size-7 place-items-center rounded-lg bg-surface text-primary">
+                <DatabaseIcon className="size-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-ink">
+                  {kb.document_count} <span className="font-normal text-muted">source{kb.document_count === 1 ? "" : "s"}</span>
+                </p>
+                <p className="text-[10px] text-muted">Embedding · {kb.embedding_model}</p>
+              </div>
             </div>
 
             <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-3">
-              <span className="text-xs text-muted">Created {formatDate(kb.created_at)}</span>
+              <span className="text-[11px] text-muted">Created {formatDate(kb.created_at)}</span>
               <div className="flex items-center gap-1">
                 <Link
                   to={`/kb/${kb.id}`}
-                  className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-primary transition hover:bg-primary/10"
+                  className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft"
                 >
-                  Open →
+                  Open collection →
                 </Link>
                 <Button
                   variant="ghost"

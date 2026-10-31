@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-/** Small stroke icons. They inherit color and size from the parent. */
+/** Icons inherit their size and color from the parent. */
 type IconProps = SVGProps<SVGSVGElement>;
 
 function Icon({ children, ...props }: IconProps) {
@@ -23,8 +23,16 @@ function Icon({ children, ...props }: IconProps) {
 
 export const ChatIcon = (props: IconProps) => (
   <Icon {...props}>
-    <path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6a8 8 0 0 1 8-8h2a8 8 0 0 1 8 3z" />
-    <path d="M8.5 12h.01M12 12h.01M15.5 12h.01" />
+    <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H7l-3 2v-5.2A7.5 7.5 0 1 1 20 11.5Z" />
+    <path d="M8 11h7M8 14.5h4.5" />
+  </Icon>
+);
+
+export const BrainIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 5.5a3 3 0 0 0-5.8-1A3.2 3.2 0 0 0 4 9.7a3.5 3.5 0 0 0 1.5 6.4V18a2 2 0 0 0 2 2H12z" />
+    <path d="M12 5.5a3 3 0 0 1 5.8-1A3.2 3.2 0 0 1 20 9.7a3.5 3.5 0 0 1-1.5 6.4V18a2 2 0 0 1-2 2H12" />
+    <path d="M8 9h1m6 0h1M8 14h1m6 0h1M12 5.5V20" />
   </Icon>
 );
 
@@ -44,6 +52,13 @@ export const SlidersIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const PanelIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3.5" y="4" width="17" height="16" rx="2.5" />
+    <path d="M9 4v16" />
+  </Icon>
+);
+
 export const PlusIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 5v14M5 12h14" />
@@ -52,8 +67,20 @@ export const PlusIcon = (props: IconProps) => (
 
 export const SendIcon = (props: IconProps) => (
   <Icon {...props}>
-    <path d="M4.5 12 20 4.5 15 20l-3.5-6.5z" />
-    <path d="m11.5 13.5 4-4" />
+    <path d="M22 2 14 22l-4.5-8L2 9.5z" />
+    <path d="m9.5 14 12-12" />
+  </Icon>
+);
+
+export const ChevronDownIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="m6 9 6 6 6-6" />
+  </Icon>
+);
+
+export const ArrowDownIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 4v16m-7-7 7 7 7-7" />
   </Icon>
 );
 

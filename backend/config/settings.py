@@ -10,9 +10,8 @@ from pathlib import Path
 
 import environ
 
-# backend/
+# Backend paths.
 BASE_DIR = Path(__file__).resolve().parent.parent
-# repository root
 ROOT_DIR = BASE_DIR.parent
 
 env = environ.Env(
@@ -20,13 +19,14 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["127.0.0.1", "localhost"]),
     CORS_ALLOWED_ORIGINS=(
         list,
-        ["http://localhost:5173", "http://127.0.0.1:5173"],
+        ["http://localhost:5330", "http://127.0.0.1:5330"],
     ),
     DATA_DIR=(str, str(ROOT_DIR / "data")),
-    OLLAMA_BASE_URL=(str, "http://localhost:11434"),
-    OLLAMA_CONNECT_TIMEOUT=(float, 5.0),
-    OLLAMA_REQUEST_TIMEOUT=(float, 600.0),
-    MODEL_CACHE_TTL=(float, 30.0),
+    LLAMA_CPP_CHAT_BASE_URL=(str, "http://127.0.0.1:8082"),
+    LLAMA_CPP_EMBEDDING_BASE_URL=(str, "http://127.0.0.1:8083"),
+    LLAMA_CPP_CONNECT_TIMEOUT=(float, 5.0),
+    LLAMA_CPP_REQUEST_TIMEOUT=(float, 600.0),
+    LLAMA_CPP_CONTEXT_SIZE=(int, 0),
 )
 environ.Env.read_env(ROOT_DIR / ".env")
 
@@ -37,9 +37,7 @@ SECRET_KEY = env(
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
-# ---------------------------------------------------------------------------
-# Applications
-# ---------------------------------------------------------------------------
+# Applications.
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -48,11 +46,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Third party
+    # Third-party apps.
     "corsheaders",
     "rest_framework",
     "drf_spectacular",
-    # Local apps
+    # Project apps.
     "kb",
     "chat",
     "llm",
@@ -89,14 +87,11 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-# ---------------------------------------------------------------------------
-# Storage
-# ---------------------------------------------------------------------------
+# Storage.
 
 DATA_DIR = Path(env("DATA_DIR"))
 if not DATA_DIR.is_absolute():
-    # Resolve relative paths against the repository root, not the process cwd,
-    # so manage.py behaves the same from backend/ or the repo root.
+    # Keep relative data paths consistent from either working directory.
     DATA_DIR = ROOT_DIR / DATA_DIR
 DATA_DIR = DATA_DIR.resolve()
 
@@ -113,7 +108,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DATA_DIR / "db.sqlite3",
         "OPTIONS": {
-            # The ingestion worker and request handlers share this database.
+            # Workers and requests share this database.
             "timeout": 20,
         },
     }
@@ -122,39 +117,42 @@ DATABASES = {
 MEDIA_URL = "/media/"
 STATIC_URL = "static/"
 
-# ---------------------------------------------------------------------------
-# Local models
-# ---------------------------------------------------------------------------
+# Local models.
 
-OLLAMA_BASE_URL = env("OLLAMA_BASE_URL").rstrip("/")
-OLLAMA_CONNECT_TIMEOUT = env("OLLAMA_CONNECT_TIMEOUT")
-OLLAMA_REQUEST_TIMEOUT = env("OLLAMA_REQUEST_TIMEOUT")
-# How long /api/models/ reuses the classified model list.
-MODEL_CACHE_TTL = env("MODEL_CACHE_TTL")
+LLAMA_CPP_CHAT_BASE_URL = env("LLAMA_CPP_CHAT_BASE_URL").rstrip("/")
+LLAMA_CPP_EMBEDDING_BASE_URL = env("LLAMA_CPP_EMBEDDING_BASE_URL").rstrip("/")
+LLAMA_CPP_CONNECT_TIMEOUT = env("LLAMA_CPP_CONNECT_TIMEOUT")
+LLAMA_CPP_REQUEST_TIMEOUT = env("LLAMA_CPP_REQUEST_TIMEOUT")
+LLAMA_CPP_CONTEXT_SIZE = env("LLAMA_CPP_CONTEXT_SIZE")
+LLAMA_CPP_CHAT_MODEL = env("LLAMA_CPP_CHAT_MODEL", default="Qwen3.5-9B")
+LLAMA_CPP_EMBEDDING_MODEL = env(
+    "LLAMA_CPP_EMBEDDING_MODEL",
+    default="nomic-embed-text-v1.5",
+)
 
-# Ollama cloud models send data off the machine; keep them hidden unless asked.
-SHOW_CLOUD_MODELS = env.bool("SHOW_CLOUD_MODELS", default=False)
-
-# Defaults used when creating a knowledge base / conversation. Per-object
-# values are stored in the database.
+# Defaults for new knowledge bases and conversations.
 DEFAULT_CHUNK_SIZE = env.int("DEFAULT_CHUNK_SIZE", default=900)
 DEFAULT_CHUNK_OVERLAP = env.int("DEFAULT_CHUNK_OVERLAP", default=120)
 DEFAULT_TOP_K = env.int("DEFAULT_TOP_K", default=4)
 DEFAULT_TEMPERATURE = env.float("DEFAULT_TEMPERATURE", default=0.2)
-DEFAULT_NUM_CTX = env.int("DEFAULT_NUM_CTX", default=8192)
+DEFAULT_NUM_CTX = env.int("DEFAULT_NUM_CTX", default=LLAMA_CPP_CONTEXT_SIZE)
 MAX_UPLOAD_SIZE_MB = env.int("MAX_UPLOAD_SIZE_MB", default=50)
-# Reasoning models can be slow; off by default, toggled per conversation.
+if LLAMA_CPP_CONTEXT_SIZE != 0 and LLAMA_CPP_CONTEXT_SIZE < 512:
+    raise ValueError("LLAMA_CPP_CONTEXT_SIZE must be 0 or at least 512.")
+if DEFAULT_NUM_CTX != 0 and DEFAULT_NUM_CTX < 512:
+    raise ValueError("DEFAULT_NUM_CTX must be 0 or at least 512.")
+if LLAMA_CPP_CONTEXT_SIZE and DEFAULT_NUM_CTX > LLAMA_CPP_CONTEXT_SIZE:
+    raise ValueError("DEFAULT_NUM_CTX must not exceed LLAMA_CPP_CONTEXT_SIZE.")
+# Reasoning is off by default and can be enabled per conversation.
 DEFAULT_THINK = env.bool("DEFAULT_THINK", default=False)
-# Rewrite pronoun-heavy follow-ups into a standalone search query first.
+# Rewrite follow-ups before searching.
 REWRITE_FOLLOWUPS = env.bool("REWRITE_FOLLOWUPS", default=True)
-# Empty means "ask the user"; the UI picks from /api/models/.
-DEFAULT_CHAT_MODEL = env("DEFAULT_CHAT_MODEL", default="")
-# Mark documents stuck in 'processing' as failed on the first request.
+# The UI chooses a model when this is empty.
+DEFAULT_CHAT_MODEL = env("DEFAULT_CHAT_MODEL", default=LLAMA_CPP_CHAT_MODEL)
+# Mark stuck documents as failed on the first request.
 STARTUP_RECOVERY = env.bool("STARTUP_RECOVERY", default=True)
 
-# ---------------------------------------------------------------------------
-# API
-# ---------------------------------------------------------------------------
+# API.
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -168,7 +166,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Local RAG API",
     "DESCRIPTION": (
-        "Local, document-agnostic retrieval-augmented generation over Ollama. "
+        "Local, document-agnostic retrieval-augmented generation over llama.cpp. "
         "No authentication: bind to 127.0.0.1 only."
     ),
     "VERSION": "2.0.0",
@@ -179,9 +177,7 @@ CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = False
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
-# ---------------------------------------------------------------------------
-# Internationalization
-# ---------------------------------------------------------------------------
+# Internationalization.
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -190,9 +186,7 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
+# Logging.
 
 LOGGING = {
     "version": 1,
@@ -219,9 +213,7 @@ LOGGING = {
     },
 }
 
-# ---------------------------------------------------------------------------
-# Admin branding
-# ---------------------------------------------------------------------------
+# Admin branding.
 
 ADMIN_SITE_HEADER = "Local RAG"
 ADMIN_SITE_TITLE = "Local RAG"
