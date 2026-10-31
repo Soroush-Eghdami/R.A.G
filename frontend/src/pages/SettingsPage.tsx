@@ -107,16 +107,19 @@ export default function SettingsPage() {
   const chatOnline = health.data?.chat.reachable ?? false;
   const embeddingOnline = health.data?.embedding.reachable ?? false;
   const dbOk = health.data?.database.ok ?? false;
-  const maxContextSize = form?.max_num_ctx ?? 8192;
+  const maxContextSize = form?.max_num_ctx ?? 0;
   const contextSizes = [
     ...new Set([
-      ...CONTEXT_SIZES.filter((size) => size <= maxContextSize),
+      0,
+      ...CONTEXT_SIZES.filter(
+        (size) => maxContextSize === 0 || size <= maxContextSize,
+      ),
       ...(form ? [form.num_ctx] : []),
     ]),
   ].sort((a, b) => a - b);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 md:px-3 md:py-3">
       <PageHeader
         title="Settings"
         subtitle="Connection status and the defaults new chats start from."
@@ -273,7 +276,10 @@ export default function SettingsPage() {
                 />
               </Field>
 
-              <Field label="Context window" hint="Tokens the model can see at once.">
+              <Field
+                label="Context window"
+                hint="Use the model's full context or choose a smaller limit. Larger windows use more memory."
+              >
                 <select
                   className={inputClass}
                   value={form.num_ctx}
@@ -281,8 +287,9 @@ export default function SettingsPage() {
                 >
                   {contextSizes.map((size) => (
                     <option key={size} value={size}>
-                      {size.toLocaleString()}
-                      {size > maxContextSize ? " · above server limit" : ""}
+                      {size === 0
+                        ? "Full model context"
+                        : `${size.toLocaleString()}${maxContextSize > 0 && size > maxContextSize ? " · above server limit" : ""}`}
                     </option>
                   ))}
                 </select>

@@ -5,8 +5,8 @@ type Variant = "primary" | "subtle" | "danger" | "ghost";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-gradient-to-br from-primary to-primary-hover text-on-primary shadow-md shadow-primary/15 hover:brightness-105 disabled:from-primary/50 disabled:to-primary/50 disabled:shadow-none",
-  subtle: "bg-elevated text-ink hover:bg-line disabled:text-muted",
+    "bg-primary text-on-primary shadow-sm shadow-primary/15 hover:bg-primary-hover disabled:opacity-50 disabled:shadow-none",
+  subtle: "border border-line bg-surface text-ink hover:bg-elevated disabled:text-muted",
   danger:
     "bg-danger/10 text-danger ring-1 ring-inset ring-danger/25 hover:bg-danger/15 disabled:opacity-50",
   ghost: "text-muted hover:bg-elevated hover:text-ink",
@@ -41,7 +41,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "rounded-2xl border border-line bg-surface/90 p-5 shadow-[0_8px_30px_-20px_rgb(0_0_0_/_0.3)] backdrop-blur-sm",
+        "rounded-2xl border border-line bg-surface p-5 shadow-[0_8px_28px_-24px_rgb(35_55_90_/_0.2)]",
         className,
       )}
     >
@@ -125,9 +125,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line bg-surface/40 px-6 py-16 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-line bg-surface px-6 py-16 text-center">
       {icon ? (
-        <div className="grid size-11 place-items-center rounded-xl bg-elevated text-muted">
+        <div className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary">
           {icon}
         </div>
       ) : null}
@@ -168,8 +168,8 @@ export function PageHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
-        {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
+        <h1 className="text-[26px] font-semibold tracking-[-0.035em] text-ink">{title}</h1>
+        {subtitle ? <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{subtitle}</p> : null}
       </div>
       {actions}
     </header>
@@ -177,4 +177,4 @@ export function PageHeader({
 }
 
 export const inputClass =
-  "w-full rounded-xl border border-line bg-elevated px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted/70 focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-muted/70 focus:border-primary/60 focus:ring-4 focus:ring-primary/10 disabled:opacity-60";

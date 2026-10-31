@@ -84,12 +84,16 @@ export type Source = {
   page: number | null;
   distance: number;
   snippet: string;
+  text?: string;
 };
+
+export type AnswerLength = "short" | "balanced" | "detailed";
 
 export type Message = {
   id: number;
   role: "user" | "assistant";
   content: string;
+  thinking?: string;
   sources: Source[];
   model_used: string;
   created_at: string;

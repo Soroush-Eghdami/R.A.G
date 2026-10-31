@@ -5,66 +5,62 @@
   --color-app: var(--tone-app);
   --color-surface: var(--tone-surface);
   --color-elevated: var(--tone-elevated);
+  --color-sidebar: var(--tone-sidebar);
+  --color-chat: var(--tone-chat);
   --color-line: var(--tone-line);
   --color-ink: var(--tone-ink);
+  --color-ink-soft: var(--tone-ink-soft);
   --color-muted: var(--tone-muted);
   --color-primary: var(--tone-primary);
   --color-primary-hover: var(--tone-primary-hover);
   --color-on-primary: var(--tone-on-primary);
+  --color-primary-soft: var(--tone-primary-soft);
   --color-accent: var(--tone-accent);
   --color-success: var(--tone-success);
   --color-warning: var(--tone-warning);
   --color-danger: var(--tone-danger);
-  --font-sans: "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: Inter, "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Light theme. */
 :root {
-  --bg: #f4f5ef;
-  --surface: #fcfcf8;
-  --raised: #e8ede4;
-  --border: #d3dbcf;
-  --moss: #6b7f5b;
-  --moss-bright: #526b43;
-  --text-muted: #687365;
-  --text-soft: #485344;
-  --text: #263026;
-  --accent: #b95335;
-  --accent-soft: #a5462d;
-
-  --tone-app: var(--bg);
-  --tone-surface: var(--surface);
-  --tone-elevated: var(--raised);
-  --tone-line: var(--border);
-  --tone-ink: var(--text);
-  --tone-muted: var(--text-muted);
-  --tone-primary: var(--moss-bright);
-  --tone-primary-hover: #43583a;
+  --tone-app: #f1f4f9;
+  --tone-surface: #fbfcff;
+  --tone-elevated: #e8edf5;
+  --tone-sidebar: #e9edf5;
+  --tone-chat: #fbfcff;
+  --tone-line: #d5ddec;
+  --tone-ink: #263247;
+  --tone-ink-soft: #52627d;
+  --tone-muted: #71809a;
+  --tone-primary: #5279cf;
+  --tone-primary-hover: #4268bd;
   --tone-on-primary: #ffffff;
-  --tone-accent: var(--accent);
-  --tone-success: var(--moss-bright);
-  --tone-warning: #94651c;
-  --tone-danger: #b4453f;
+  --tone-primary-soft: #e2eafb;
+  --tone-accent: #168ba5;
+  --tone-success: #4774c3;
+  --tone-warning: #a56d24;
+  --tone-danger: #b65062;
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0f140f;
-  --surface: #172018;
-  --raised: #2e3a2f;
-  --border: #3f4f40;
-  --moss: #6b7f5b;
-  --moss-bright: #9db587;
-  --text-muted: #a29683;
-  --text-soft: #d9c9b2;
-  --text: #f8f6ee;
-  --accent: #c96f4f;
-  --accent-soft: #df8969;
-
-  --tone-on-primary: #172018;
-  --tone-primary-hover: #b1c99b;
-  --tone-warning: #d8ac69;
-  --tone-danger: #e38b82;
+  --tone-app: #1a1b26;
+  --tone-surface: #1f2335;
+  --tone-elevated: #292e42;
+  --tone-sidebar: #1f2335;
+  --tone-chat: #1a1b26;
+  --tone-line: #3b4261;
+  --tone-ink: #c0caf5;
+  --tone-ink-soft: #a9b1d6;
+  --tone-muted: #7982a9;
+  --tone-primary: #7aa2f7;
+  --tone-primary-hover: #89b4fa;
+  --tone-on-primary: #1a1b26;
+  --tone-primary-soft: #292e42;
+  --tone-accent: #7dcfff;
+  --tone-success: #7aa2f7;
+  --tone-warning: #e0af68;
+  --tone-danger: #f7768e;
   color-scheme: dark;
 }
 
@@ -78,8 +74,7 @@ body,
 
 body {
   background:
-    radial-gradient(ellipse at 82% 0%, color-mix(in srgb, var(--tone-primary) 8%, transparent), transparent 34rem),
-    radial-gradient(ellipse at 8% 100%, color-mix(in srgb, var(--tone-accent) 6%, transparent), transparent 32rem),
+    radial-gradient(ellipse at 88% 0%, color-mix(in srgb, var(--tone-primary) 5%, transparent), transparent 42rem),
     var(--tone-app);
   color: var(--tone-ink);
   -webkit-font-smoothing: antialiased;
@@ -87,10 +82,10 @@ body {
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--tone-accent) 30%, transparent);
+  color: var(--tone-ink);
+  background: color-mix(in oklab, var(--tone-primary) 25%, transparent);
 }
 
-/* Theme-matched scrollbars. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--tone-line) transparent;
@@ -109,8 +104,8 @@ body {
 }
 
 dialog::backdrop {
-  background: rgb(5 8 5 / 0.65);
-  backdrop-filter: blur(3px);
+  background: rgb(26 27 38 / 0.62);
+  backdrop-filter: blur(5px);
 }
 
 button,
@@ -118,6 +113,11 @@ select,
 textarea,
 input {
   font: inherit;
+}
+
+select option {
+  background-color: var(--tone-surface);
+  color: var(--tone-ink);
 }
 
 button:focus-visible,
@@ -129,7 +129,6 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-/* Keep code blocks styled by their surrounding <pre>. */
 .markdown pre code {
   background: transparent;
   padding: 0;
@@ -149,7 +148,6 @@ textarea:focus-visible {
   text-underline-offset: 2px;
 }
 
-/* Shared entrance animations. */
 @keyframes slide-in {
   from {
     opacity: 0;
@@ -178,6 +176,25 @@ textarea:focus-visible {
 
 .animate-rise {
   animation: rise 200ms ease-out;
+}
+
+.app-sidebar {
+  background: color-mix(in srgb, var(--tone-sidebar) 94%, transparent);
+}
+
+.chat-workspace {
+  background: var(--tone-chat);
+}
+
+.subtle-grid {
+  background-image: radial-gradient(color-mix(in srgb, var(--tone-line) 75%, transparent) 0.7px, transparent 0.7px);
+  background-size: 15px 15px;
+}
+
+.panel-backdrop {
+  left: min(82vw, 300px);
+  background: color-mix(in srgb, #1a1b26 36%, transparent);
+  backdrop-filter: blur(2px);
 }
 
 @media (prefers-reduced-motion: reduce) {

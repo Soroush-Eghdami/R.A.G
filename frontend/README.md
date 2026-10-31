@@ -4,7 +4,7 @@ React + Vite + TypeScript, Tailwind v4 and TanStack Query.
 
 ```powershell
 npm install
-npm run dev      # http://127.0.0.1:5173
+npm run dev      # http://127.0.0.1:5330
 npm run build    # typecheck + production build into dist/
 ```
 

@@ -2,6 +2,7 @@
 
 import type {
   AppSettings,
+  AnswerLength,
   Conversation,
   CreateKnowledgeBase,
   Document,
@@ -226,12 +227,17 @@ type StreamHandlers = {
 export async function streamAnswer(
   conversationId: string,
   question: string,
-  { onEvent, signal, think = false }: StreamHandlers & { think?: boolean },
+  {
+    onEvent,
+    signal,
+    think = false,
+    answerLength = "balanced",
+  }: StreamHandlers & { think?: boolean; answerLength?: AnswerLength },
 ): Promise<void> {
   const response = await fetch(`${BASE}/conversations/${conversationId}/messages/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, think }),
+    body: JSON.stringify({ question, think, answer_length: answerLength }),
     signal,
   });
 

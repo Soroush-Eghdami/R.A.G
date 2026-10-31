@@ -131,32 +131,39 @@ export default function KnowledgeBasePage() {
   const list = documents.data ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-7 px-4 py-6 md:px-3 md:py-3">
       <div>
         <Link
           to="/kb"
-          className="text-sm text-muted transition hover:text-ink"
+          className="inline-flex items-center gap-2 text-xs font-medium text-muted transition hover:text-primary"
         >
-          ← Knowledge bases
+          <span aria-hidden="true">←</span> All collections
         </Link>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight text-ink">{data.name}</h1>
-            <p className="mt-1 text-sm text-muted">{data.description || "No description"}</p>
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary">
+              <FileIcon className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">Knowledge collection</p>
+              <h1 className="mt-1 truncate text-[26px] font-semibold tracking-[-0.035em] text-ink">{data.name}</h1>
+              <p className="mt-1 text-sm text-muted">{data.description || "Your documents, ready to search."}</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge>
-              {data.document_count} document{data.document_count === 1 ? "" : "s"}
+              {data.document_count} source{data.document_count === 1 ? "" : "s"}
             </Badge>
             <Badge tone={data.is_locked ? "info" : "neutral"}>
-              {data.is_locked ? "embedding locked" : "embedding editable"}
+              {data.is_locked ? "Index locked" : "Index ready"}
             </Badge>
           </div>
         </div>
-        <p className="mt-2 text-xs text-muted">
-          {data.embedding_model} · {data.chunk_size} chars per chunk, {data.chunk_overlap}{" "}
-          overlap
-        </p>
+        <div className="ml-14 mt-2 flex flex-wrap gap-x-1.5 gap-y-1 text-[11px] text-muted">
+          <span>{data.embedding_model}</span>
+          <span>{data.chunk_size} chars per passage</span>
+          <span>{data.chunk_overlap} overlap</span>
+        </div>
       </div>
 
       <div
@@ -171,31 +178,32 @@ export default function KnowledgeBasePage() {
           void addFiles(Array.from(event.dataTransfer.files));
         }}
         className={cx(
-          "flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition",
+          "subtle-grid flex min-h-52 flex-col items-center justify-center gap-2.5 rounded-3xl border border-dashed px-6 py-9 text-center transition",
           dragging
-            ? "border-primary/60 bg-primary/5"
-            : "border-line bg-app/40 hover:border-primary/40",
+            ? "border-primary/60 bg-primary-soft"
+            : "border-line bg-surface hover:border-primary/40 hover:bg-primary-soft/30",
         )}
       >
         <span
           className={cx(
-            "grid size-10 place-items-center rounded-xl transition",
-            dragging ? "bg-primary/15 text-primary" : "bg-elevated text-muted",
+            "grid size-12 place-items-center rounded-2xl transition",
+            dragging ? "bg-primary text-on-primary" : "bg-primary-soft text-primary",
           )}
         >
-          <UploadIcon className="size-5" />
+          <UploadIcon className="size-[21px]" />
         </span>
-        <p className="text-sm text-ink">
-          Drop files here, or{" "}
+        <p className="mt-1 text-sm font-medium text-ink">Add documents to your collection</p>
+        <p className="text-xs text-muted">
+          Drag and drop files here, or{" "}
           <button
             type="button"
-            className="cursor-pointer font-medium text-primary underline-offset-2 hover:underline"
+            className="cursor-pointer font-semibold text-primary underline-offset-2 hover:underline"
             onClick={() => fileInput.current?.click()}
           >
             browse
           </button>
         </p>
-        <p className="text-xs text-muted">PDF, Word, Markdown or plain text · up to 50 MB each</p>
+        <p className="mt-1 text-[10px] text-muted">PDF, Word, Markdown or plain text · up to 50 MB per file</p>
         {uploading > 0 ? (
           <p className="flex items-center gap-2 text-xs font-medium text-primary">
             <Spinner /> Uploading {uploading} file{uploading === 1 ? "" : "s"}…
@@ -240,8 +248,16 @@ export default function KnowledgeBasePage() {
 
       {list.length > 0 ? (
         <Card className="overflow-hidden p-0">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-line bg-app/40 text-[11px] tracking-wide text-muted uppercase">
+          <div className="flex items-center justify-between border-b border-line px-5 py-4">
+            <div>
+              <h2 className="text-sm font-semibold text-ink">Sources</h2>
+              <p className="mt-0.5 text-xs text-muted">Documents indexed for retrieval</p>
+            </div>
+            <Badge>{list.length} file{list.length === 1 ? "" : "s"}</Badge>
+          </div>
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[620px] text-left text-sm">
+            <thead className="border-b border-line bg-elevated/50 text-[10px] tracking-[0.1em] text-muted uppercase">
               <tr>
                 <th className="px-4 py-3 font-medium">File</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -252,7 +268,7 @@ export default function KnowledgeBasePage() {
             </thead>
             <tbody className="divide-y divide-line/70">
               {list.map((doc) => (
-                <tr key={doc.id} className="align-top transition hover:bg-elevated/40">
+                <tr key={doc.id} className="align-top transition hover:bg-elevated/45">
                   <td className="max-w-xs px-4 py-3">
                     <div className="flex items-start gap-2.5">
                       <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-elevated text-muted">
@@ -301,6 +317,7 @@ export default function KnowledgeBasePage() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       ) : null}
     </div>
