@@ -11,7 +11,7 @@ class AppSettings(models.Model):
     default_embedding_model = models.CharField(max_length=200, blank=True)
     top_k = models.PositiveIntegerField(default=4)
     temperature = models.FloatField(default=0.2)
-    num_ctx = models.PositiveIntegerField(default=8192)
+    num_ctx = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

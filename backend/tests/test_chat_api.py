@@ -34,6 +34,9 @@ class FakeClient:
         self.calls = []
         self.rewrites = []
 
+    def context_size(self):
+        return 8192
+
     def chat(self, model, messages, *, options=None, think=None):
         self.rewrites.append({"model": model, "messages": messages})
         return {"message": {"content": self.rewrite}}
@@ -134,6 +137,7 @@ def test_json_answer_is_saved(client, kb, settings_row, runtime):
     body = response.json()
     assert body["message"]["content"] == "The answer is 42."
     assert body["sources"][0]["document"] == "alpha.txt"
+    assert body["sources"][0]["text"] == "Alpha is the first letter."
 
     conversation = Conversation.objects.get(pk=conversation_id)
     assert conversation.title == "What is alpha?"
@@ -218,7 +222,39 @@ def test_options_come_from_settings_row(client, kb, settings_row, runtime):
     call = runtime[0].calls[-1]
     assert call["options"]["num_ctx"] == 4096
     assert call["options"]["temperature"] == 0.1
+    assert call["options"]["max_tokens"] == 768
     assert call["think"] is False
+
+
+def test_full_model_context_is_resolved_for_each_request(
+    client, kb, settings_row, runtime
+):
+    settings_row.num_ctx = 0
+    settings_row.save()
+    runtime[0].context_size = lambda: 32768
+    conversation_id = make_conversation(client, kb).json()["id"]
+
+    client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "stream": False},
+        format="json",
+    )
+
+    assert runtime[0].calls[-1]["options"]["num_ctx"] == 32768
+
+
+def test_answer_length_is_forwarded_to_the_model(client, kb, settings_row, runtime):
+    conversation_id = make_conversation(client, kb).json()["id"]
+    response = client.post(
+        f"/api/conversations/{conversation_id}/messages/",
+        {"question": "What is alpha?", "stream": False, "answer_length": "detailed"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    call = runtime[0].calls[-1]
+    assert call["options"]["max_tokens"] > 1536
+    assert "Give a thorough answer" in call["messages"][0]["content"]
 
 
 def test_search_returns_chunks_without_calling_the_model(client, kb, runtime):

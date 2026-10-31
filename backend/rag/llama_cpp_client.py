@@ -131,6 +131,23 @@ class LlamaCppClient:
         """Raise a typed error unless the server is ready to accept requests."""
         self._request("GET", "/health", timeout=self._health_timeout)
 
+    def context_size(self) -> int:
+        """Return the active context window reported by llama.cpp."""
+        response = self._request("GET", "/props", timeout=self._health_timeout)
+        payload = self._json_payload(response, "model properties")
+        defaults = payload.get("default_generation_settings")
+        context_size = defaults.get("n_ctx") if isinstance(defaults, dict) else None
+        if (
+            not isinstance(context_size, int)
+            or isinstance(context_size, bool)
+            or context_size < 512
+        ):
+            raise LLMResponseError(
+                "llama.cpp returned an invalid active context size.",
+                detail=str(payload)[:500],
+            )
+        return context_size
+
     @staticmethod
     def _json_payload(response: httpx.Response, operation: str) -> dict[str, Any]:
         try:
@@ -197,6 +214,8 @@ class LlamaCppClient:
         }
         if options and "temperature" in options:
             payload["temperature"] = options["temperature"]
+        if options and "max_tokens" in options:
+            payload["max_tokens"] = options["max_tokens"]
         if think is not None:
             payload["chat_template_kwargs"] = {"enable_thinking": think}
         return payload

@@ -31,6 +31,32 @@ def test_health(client):
 
 
 @respx.mock
+def test_context_size_uses_loaded_model_properties(client):
+    respx.get(f"{BASE}/props").mock(
+        return_value=httpx.Response(
+            200,
+            json={"default_generation_settings": {"n_ctx": 32768}},
+        )
+    )
+    assert client.context_size() == 32768
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {},
+        {"default_generation_settings": {"n_ctx": 0}},
+        {"default_generation_settings": {"n_ctx": "8192"}},
+    ],
+)
+@respx.mock
+def test_context_size_rejects_missing_or_invalid_properties(client, payload):
+    respx.get(f"{BASE}/props").mock(return_value=httpx.Response(200, json=payload))
+    with pytest.raises(LLMResponseError):
+        client.context_size()
+
+
+@respx.mock
 def test_embedding_batch_is_returned_in_input_order(client):
     route = respx.post(f"{BASE}/v1/embeddings").mock(
         return_value=httpx.Response(
@@ -77,12 +103,13 @@ def test_chat_normalizes_openai_response(client):
     result = client.chat(
         "Qwen3.5-9B",
         [{"role": "user", "content": "Question"}],
-        options={"temperature": 0.2, "num_ctx": 4096},
+        options={"temperature": 0.2, "num_ctx": 4096, "max_tokens": 768},
         think=True,
     )
     assert result["message"] == {"content": "Answer.", "thinking": "Reasoning."}
     payload = json.loads(route.calls[0].request.content)
     assert payload["temperature"] == 0.2
+    assert payload["max_tokens"] == 768
     assert payload["chat_template_kwargs"] == {"enable_thinking": True}
     assert "num_ctx" not in payload
 

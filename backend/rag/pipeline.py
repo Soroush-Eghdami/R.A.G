@@ -224,6 +224,7 @@ def answer_stream(
     num_ctx: int = 8192,
     temperature: float = 0.2,
     think: bool | None = False,
+    answer_length: str = "balanced",
     rewrite_followups: bool = True,
     reserve_output_tokens: int = 1024,
     retrieval: RetrievalConfig | None = None,
@@ -250,7 +251,18 @@ def answer_stream(
     config = retrieval or RetrievalConfig(top_k=kb.top_k, max_distance=kb.max_distance)
     found = retrieve(store, embedder, kb.id, search_query, config)
 
-    budget = max(512, num_ctx - reserve_output_tokens)
+    answer_limits = {
+        "short": (256, "Answer briefly, usually in one to three sentences."),
+        "balanced": (768, "Give a clear, moderately detailed answer in a few short paragraphs."),
+        "detailed": (None, "Give a thorough answer with relevant details and caveats, without repetition."),
+    }
+    max_tokens, length_guidance = answer_limits.get(answer_length, answer_limits["balanced"])
+    output_reserve = max(
+        reserve_output_tokens,
+        max_tokens if max_tokens is not None else num_ctx // 4,
+    )
+    output_reserve = min(output_reserve, max(1, num_ctx // 2))
+    budget = max(256, num_ctx - output_reserve)
     fixed = estimate_tokens(SYSTEM_PROMPT) + estimate_tokens(question) + 64
     history_messages = _fit_history(history, int(budget * 0.25))
     history_cost = sum(estimate_tokens(str(m.get("content", ""))) + 4 for m in history_messages)
@@ -266,7 +278,11 @@ def answer_stream(
     yield StreamEvent(type="sources", sources=sources)
 
     messages = build_messages(question, chunks, history_messages)
-    options = {"num_ctx": num_ctx, "temperature": temperature}
+    messages[0]["content"] += f"\n\nAnswer length: {length_guidance}"
+    if max_tokens is None:
+        prompt_tokens = sum(estimate_tokens(message["content"]) + 4 for message in messages)
+        max_tokens = max(1, num_ctx - prompt_tokens - 128)
+    options = {"num_ctx": num_ctx, "temperature": temperature, "max_tokens": max_tokens}
     parts: list[str] = []
     for event in client.chat_stream(chat_model, messages, options=options, think=think):
         message = event.get("message") or {}

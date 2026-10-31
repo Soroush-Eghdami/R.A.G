@@ -19,14 +19,14 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["127.0.0.1", "localhost"]),
     CORS_ALLOWED_ORIGINS=(
         list,
-        ["http://localhost:5173", "http://127.0.0.1:5173"],
+        ["http://localhost:5330", "http://127.0.0.1:5330"],
     ),
     DATA_DIR=(str, str(ROOT_DIR / "data")),
     LLAMA_CPP_CHAT_BASE_URL=(str, "http://127.0.0.1:8082"),
     LLAMA_CPP_EMBEDDING_BASE_URL=(str, "http://127.0.0.1:8083"),
     LLAMA_CPP_CONNECT_TIMEOUT=(float, 5.0),
     LLAMA_CPP_REQUEST_TIMEOUT=(float, 600.0),
-    LLAMA_CPP_CONTEXT_SIZE=(int, 8192),
+    LLAMA_CPP_CONTEXT_SIZE=(int, 0),
 )
 environ.Env.read_env(ROOT_DIR / ".env")
 
@@ -137,10 +137,12 @@ DEFAULT_TOP_K = env.int("DEFAULT_TOP_K", default=4)
 DEFAULT_TEMPERATURE = env.float("DEFAULT_TEMPERATURE", default=0.2)
 DEFAULT_NUM_CTX = env.int("DEFAULT_NUM_CTX", default=LLAMA_CPP_CONTEXT_SIZE)
 MAX_UPLOAD_SIZE_MB = env.int("MAX_UPLOAD_SIZE_MB", default=50)
-if LLAMA_CPP_CONTEXT_SIZE < 512:
-    raise ValueError("LLAMA_CPP_CONTEXT_SIZE must be at least 512.")
-if not 512 <= DEFAULT_NUM_CTX <= LLAMA_CPP_CONTEXT_SIZE:
-    raise ValueError("DEFAULT_NUM_CTX must be between 512 and LLAMA_CPP_CONTEXT_SIZE.")
+if LLAMA_CPP_CONTEXT_SIZE != 0 and LLAMA_CPP_CONTEXT_SIZE < 512:
+    raise ValueError("LLAMA_CPP_CONTEXT_SIZE must be 0 or at least 512.")
+if DEFAULT_NUM_CTX != 0 and DEFAULT_NUM_CTX < 512:
+    raise ValueError("DEFAULT_NUM_CTX must be 0 or at least 512.")
+if LLAMA_CPP_CONTEXT_SIZE and DEFAULT_NUM_CTX > LLAMA_CPP_CONTEXT_SIZE:
+    raise ValueError("DEFAULT_NUM_CTX must not exceed LLAMA_CPP_CONTEXT_SIZE.")
 # Reasoning is off by default and can be enabled per conversation.
 DEFAULT_THINK = env.bool("DEFAULT_THINK", default=False)
 # Rewrite follow-ups before searching.

@@ -7,13 +7,13 @@ param(
     [string]$HostAddress = "127.0.0.1",
     [string]$Device = "Vulkan0",
     [int]$GpuLayers = 99,
-    [int]$ContextSize = 0
+    [int]$ContextSize = -1
 )
 
 $ErrorActionPreference = "Stop"
 
-if ($ContextSize -eq 0) {
-    $ContextSize = 8192
+if ($ContextSize -eq -1) {
+    $ContextSize = 0
     $envFile = Join-Path (Split-Path $PSScriptRoot -Parent) ".env"
     if (Test-Path -LiteralPath $envFile -PathType Leaf) {
         $setting = Select-String -Path $envFile -Pattern '^\s*LLAMA_CPP_CONTEXT_SIZE\s*=\s*(\d+)\s*$' |
@@ -23,8 +23,8 @@ if ($ContextSize -eq 0) {
         }
     }
 }
-if ($ContextSize -lt 512) {
-    throw "LLAMA_CPP_CONTEXT_SIZE must be at least 512."
+if ($ContextSize -lt 0 -or ($ContextSize -ne 0 -and $ContextSize -lt 512)) {
+    throw "ContextSize must be 0 or at least 512."
 }
 
 if ($Mode -eq "chat") {
@@ -47,9 +47,11 @@ $arguments = @(
     "--host", $HostAddress,
     "--port", "$port",
     "--device", $Device,
-    "--n-gpu-layers", "$GpuLayers",
-    "--ctx-size", "$ContextSize"
+    "--n-gpu-layers", "$GpuLayers"
 )
+if ($ContextSize -gt 0) {
+    $arguments += @("--ctx-size", "$ContextSize")
+}
 
 if ($Mode -eq "embedding") {
     $arguments += @("--embedding", "--pooling", "mean")

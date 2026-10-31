@@ -84,7 +84,7 @@ npm install
 npm run dev
 ```
 
-Open http://127.0.0.1:5173. For the one-command dev launcher, run `python run.py`
+Open http://127.0.0.1:5330. For the one-command dev launcher, run `python run.py`
 without `--backend-only` after installing frontend dependencies.
 
 ### Docker
@@ -125,10 +125,10 @@ Runtime settings come from `.env`:
 | `LLAMA_CPP_EMBEDDING_MODEL` | `nomic-embed-text-v1.5` | Embedding alias (`--alias`) |
 | `LLAMA_CPP_CONNECT_TIMEOUT` | `5` | Connect timeout in seconds |
 | `LLAMA_CPP_REQUEST_TIMEOUT` | `600` | Model request timeout in seconds |
-| `LLAMA_CPP_CONTEXT_SIZE` | `8192` | Server context limit; the app prevents larger prompt budgets |
+| `LLAMA_CPP_CONTEXT_SIZE` | `0` | Server context limit; `0` lets llama.cpp use the model's context |
 | `DEFAULT_TOP_K` | `4` | Retrieved passages |
 | `DEFAULT_TEMPERATURE` | `0.2` | Generation temperature |
-| `DEFAULT_NUM_CTX` | `8192` | Prompt budget; must not exceed `LLAMA_CPP_CONTEXT_SIZE` |
+| `DEFAULT_NUM_CTX` | `0` | App prompt budget; `0` uses the full context reported by llama.cpp |
 | `MAX_UPLOAD_SIZE_MB` | `50` | Upload limit |
 
 `SECRET_KEY` is required; replace the example value before use.

@@ -74,7 +74,7 @@ The included `scripts/start-llama.ps1` starts one server per model:
 
 | Purpose | Model alias | Port | Important options |
 |---|---|---:|---|
-| Chat | `Qwen3.5-9B` | 8082 | Vulkan0, GPU offload, context 8192 |
+| Chat | `Qwen3.5-9B` | 8082 | Vulkan0, GPU offload, model-defined context by default |
 | Embeddings | `nomic-embed-text-v1.5` | 8083 | Vulkan0, `--embedding`, mean pooling |
 
 Each alias must match the corresponding `LLAMA_CPP_*_MODEL` setting and the
@@ -102,8 +102,8 @@ and firewall rules. Outside Docker, keep the default loopback binding.
 | `LLAMA_CPP_EMBEDDING_MODEL` | `nomic-embed-text-v1.5` | Embedding alias |
 | `LLAMA_CPP_CONNECT_TIMEOUT` | `5` | Connect timeout in seconds |
 | `LLAMA_CPP_REQUEST_TIMEOUT` | `600` | Request timeout in seconds |
-| `LLAMA_CPP_CONTEXT_SIZE` | `8192` | Server context limit and maximum app prompt budget |
-| `DEFAULT_NUM_CTX` | `8192` | RAG prompt budget |
+| `LLAMA_CPP_CONTEXT_SIZE` | `0` | Server context limit; `0` uses the context defined by the model |
+| `DEFAULT_NUM_CTX` | `0` | RAG prompt budget; `0` uses the loaded context reported by llama.cpp |
 | `DEFAULT_TOP_K` | `4` | Retrieved chunks |
 | `DEFAULT_TEMPERATURE` | `0.2` | Generation temperature |
 | `MAX_UPLOAD_SIZE_MB` | `50` | Upload limit |

@@ -11,7 +11,7 @@ SYSTEM_PROMPT = (
     "If the context does not contain the answer, say you don't know. Do not invent facts.\n"
     "Cite the context blocks you use inline like [1], [2].\n"
     "Do not add a source list, summary of the sources, or a 'Sources:' section at the end.\n"
-    "Keep the answer short and to the point."
+    "Keep answers focused and avoid repetition."
 )
 
 NO_ANSWER = "I couldn't find that in your documents."

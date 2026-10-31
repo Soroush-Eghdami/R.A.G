@@ -34,6 +34,18 @@ def test_settings_can_be_changed(client):
     assert saved.num_ctx == 4096
 
 
+def test_full_model_context_can_be_selected(client, settings):
+    settings.LLAMA_CPP_CONTEXT_SIZE = 0
+    response = client.patch(
+        "/api/settings/",
+        {"num_ctx": 0},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["num_ctx"] == 0
+    assert AppSettings.load().num_ctx == 0
+
+
 def test_server_urls_are_read_only(client, settings):
     response = client.patch(
         "/api/settings/",

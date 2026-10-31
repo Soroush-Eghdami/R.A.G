@@ -100,8 +100,14 @@ class AppSettingsSerializer(serializers.ModelSerializer):
     def validate_num_ctx(self, value: int) -> int:
         from django.conf import settings
 
-        if not 512 <= value <= settings.LLAMA_CPP_CONTEXT_SIZE:
+        if value == 0:
+            return value
+        if value < 512 or (
+            settings.LLAMA_CPP_CONTEXT_SIZE
+            and value > settings.LLAMA_CPP_CONTEXT_SIZE
+        ):
+            maximum = settings.LLAMA_CPP_CONTEXT_SIZE or "the model maximum"
             raise serializers.ValidationError(
-                f"Between 512 and {settings.LLAMA_CPP_CONTEXT_SIZE}."
+                f"Use 0 for the full model context, or a value between 512 and {maximum}."
             )
         return value
